@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <title>Painel Admin — Parâmetros da Extensão</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    :root {
+      --bg: #000113;
+      --panel: #000622;
+      --panel-alt: #00082f;
+      --field-bg: #000518;
+      --border: #33343b;
+      --border-soft: #2a2b31;
+      --text: #e4e4e8;
+      --text-dim: #9a9ba1;
+      --text-faint: #63646b;
+      --accent: #00a41b;
+      --accent-soft: rgba(38, 255, 0, 0.12);
+      --ok: #4fb477;
+      --danger: #ab0000;
+      --info: #00a41b;
+      --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+      --sans: -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      padding: 16px 12px;
+      max-width: 880px;
+      margin: auto;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .win {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--panel-alt);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+
+    .titlebar-label {
+      margin-left: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-faint);
+      letter-spacing: 0.02em;
+    }
+
+    .card { padding: 20px 18px; }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 6px 0;
+    }
+
+    h1 {
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 20px 0;
+    }
+
+    .config-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--panel-alt);
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+      border-left: 3px solid var(--accent);
+    }
+
+    .credentials-badge {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: var(--panel-alt);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .field-group { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+      font-size: 12.5px;
+      font-family: var(--mono);
+    }
+
+    .col-header-row, .col-header-imp {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .col-header-row { grid-template-columns: 3fr 80px 4fr 36px; }
+    .col-header-imp { grid-template-columns: 4fr 5fr 36px; }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 10px 32px 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      box-sizing: border-box;
+      font-size: 13.5px;
+      background: var(--field-bg) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a9ba1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 12px center;
+      background-size: 14px;
+      color: var(--text);
+      font-family: var(--mono);
+      transition: border-color .15s ease, background .15s ease;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #000625;
+    }
+
+    input::placeholder { color: var(--text-faint); }
+    select { cursor: pointer; }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--field-bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 0 10px;
+      transition: border-color .15s ease, background .15s ease;
+      width: 100%;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent) !important;
+      background: #000625 !important;
+    }
+
+    .input-wrapper span {
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-weight: bold;
+      font-size: 15px;
+      user-select: none;
+    }
+
+    .input-wrapper input {
+      border: none !important;
+      background: transparent !important;
+      padding: 10px 4px !important;
+      width: 100%;
+      outline: none !important;
+      box-shadow: none !important;
+      color: var(--text) !important;
+      font-family: var(--mono);
+      font-size: 13.5px;
+    }
+
+    .actions {
+      margin-top: 30px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-soft);
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .15s ease, transform .1s ease, opacity .15s ease;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-family: var(--sans);
+    }
+    button:active { transform: scale(0.98); }
+
+    .btn-load { background: var(--info); color: #10161d; }
+    .btn-load:hover { opacity: 0.88; }
+    .btn-save { background: var(--accent); color: #1a1310; flex-grow: 1; padding: 12px 24px; font-size: 14.5px; width: 100%; }
+    .btn-save:hover { background: #6ae28e; }
+    .btn-delete { background: transparent; color: var(--danger); border-color: var(--danger); }
+    .btn-delete:hover { background: rgba(229, 96, 90, 0.1); }
+    .btn-add-machine { background: transparent; color: var(--accent); border-color: var(--accent); }
+    .btn-add-machine:hover { background: var(--accent-soft); }
+
+    #status {
+      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      display: block;
+      width: 100%;
+    }
+    .success { color: var(--ok); }
+    .error { color: var(--danger); }
+
+    .regras-grid {
+      display: grid;
+      grid-template-columns: 3fr 80px 4fr 36px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .regras-imp-grid {
+      display: grid;
+      grid-template-columns: 4fr 5fr 36px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .btn-remove {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--border);
+      padding: 6px 0;
+      width: 36px;
+      height: 38px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-add {
+      background: transparent;
+      color: var(--info);
+      border: 1px solid var(--border);
+      padding: 8px 15px;
+      font-size: 12.5px;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .header-machine { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin: 20px 0 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 10px 12px;
+      font-weight: 600;
+      font-size: 12.5px;
+      color: var(--text-faint);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      border-radius: 6px 6px 0 0;
+      transition: 0.15s;
+      font-family: var(--sans);
+    }
+    .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-faint);
+      margin: 0 0 16px 0;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .card-material-especial {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+      border-left: 3px solid var(--info);
+    }
+
+    .card-material-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="win">
+    <div class="titlebar">
+      <span class="dot r"></span>
+      <span class="dot y"></span>
+      <span class="dot g"></span>
+      <span class="titlebar-label">~/config/parametros.json</span>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Painel Admin</p>
+      <h1>Parâmetros de Apontamentos</h1>
+
+      <div id="credentialsBadge" class="credentials-badge">
+        <span id="badgeUserText" style="font-family: var(--mono); font-size: 12px; color: var(--ok);">✓ Conectado ao GitHub</span>
+        <button type="button" onclick="alterarCredenciais()" style="padding: 6px 10px; font-size: 11px; background: transparent; color: var(--text-dim); border: 1px solid var(--border);">⚙️ Trocar Token / Usuário</button>
+      </div>
+
+      <div class="config-section" id="credentialsSection">
+        <label>Identificação & Acesso:</label>
+        <input type="text" id="nomeOperador" placeholder="Seu Nome (Para o log.json)" style="margin-bottom: 10px;">
+        <input type="password" id="adminToken" placeholder="Token ghp_...">
+        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="text" id="owner" value="RogerioFadini" placeholder="Usuário GitHub">
+          <input type="text" id="repo" value="sap-extension-config" placeholder="Nome do Repositório">
+          <button type="button" id="loadBtn" class="btn-load" style="width: 100%;">Carregar Dados</button>
+        </div>
+      </div>
+
+      <div id="editorForm" style="display:none;">
+        <div class="field-group">
+          <label>Selecione a Máquina:</label>
+          <div class="header-machine">
+            <select id="maquina" style="flex-grow: 1;"></select>
+            <button type="button" class="btn-add-machine" onclick="adicionarNovaMaquina()">+ Nova</button>
+            <button type="button" class="btn-delete" onclick="excluirMaquinaAtual()">Excluir</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Nome da Máquina:</label>
+          <input type="text" id="nomeMaquina">
+        </div>
+
+        <div class="tabs">
+          <button type="button" class="tab-btn active" id="tabBtnCo11n" onclick="trocarTab('co11n')">⚙️ CO11N / Refugo</button>
+          <button type="button" class="tab-btn" id="tabBtnImpressao" onclick="trocarTab('impressao')">🏷️ Etiquetas</button>
+          <button type="button" class="tab-btn" id="tabBtnLogs" onclick="trocarTab('logs')">📜 Histórico</button>
+        </div>
+
+        <!-- Painel CO11N -->
+        <div class="tab-panel active" id="tabPanelCo11n">
+          <p class="section-title">Parâmetros usados pela extensão CO11N</p>
+
+          <div class="field-group">
+            <label>Vazão (kg/h):</label>
+            <input type="number" id="vazao">
+          </div>
+
+          <div class="field-group">
+            <label>Regras de Refugo:</label>
+            
+            <div class="col-header-row">
+              <div>Nome</div>
+              <div>Causa</div>
+              <div>Material no SAP</div>
+              <div></div>
+            </div>
+
+            <div id="regrasContainer"></div>
+            <button type="button" class="btn-add" onclick="addRegra()">+ Adicionar Regra de Refugo</button>
+          </div>
+
+          <!-- Telas Primário -->
+          <div class="field-group" id="grupoTelaPrimario">
+            <label style="color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px;">Configuração de Telas (Primário):</label>
+            
+            <div style="margin-top: 15px; margin-bottom: 25px; background: var(--panel-alt); padding: 15px; border-radius: 8px; border: 1px solid var(--border-soft);">
+              <label>Padrão da Máquina (Raiz do JSON):</label>
+              <div class="regras-imp-grid" style="margin-top: 8px;">
+                <div class="input-wrapper">
+                  <input id="itemPadraoCodigo" placeholder="TELA FILTRO 170MM...">
+                </div>
+                <div class="input-wrapper">
+                  <input id="itemPadraoQtd" placeholder="Qtd Padrão (Ex: 8,000)">
+                </div>
+                <div></div>
+              </div>
+            </div>
+
+            <label>Filtros Especiais (Bloco "ESPECIAIS" no JSON):</label>
+            <div id="containerMateriaisEspeciais"></div>
+
+            <button type="button" class="btn-add-machine" style="width: 100%; padding: 10px; margin-bottom: 20px;" onclick="addCardMaterialEspecial()">
+              + Adicionar Novo Material Especial
+            </button>
+          </div>
+
+          <!-- Telas Secundário -->
+          <div class="field-group" id="grupoTelaSecundario">
+            <label>Telas Secundário (Específico desta Máquina):</label>
+
+            <div class="col-header-imp">
+              <div>Chave / Campo original</div>
+              <div>Valor / Quantidade</div>
+              <div></div>
+            </div>
+
+            <div id="telasSecundarioContainer"></div>
+            <button type="button" class="btn-add" onclick="addTelaSecundario()">+ Adicionar Tela Secundária</button>
+          </div>
+        </div>
+
+        <!-- Painel Impressão -->
+        <div class="tab-panel" id="tabPanelImpressao">
+          <p class="section-title">Parâmetros de Impressão (ZUI5_IMPRUC)</p>
+
+          <div class="field-group">
+            <label>Regras de Impressão de Etiquetas:</label>
+            
+            <div class="col-header-imp">
+              <div>Nome comum</div>
+              <div>Nome para busca</div>
+              <div></div>
+            </div>
+
+            <div id="regrasImpressaoContainer"></div>
+            <button type="button" class="btn-add" onclick="addRegraImpressao()">+ Adicionar Regra de Impressão</button>
+          </div>
+        </div>
+
+        <!-- Painel Histórico -->
+        <div class="tab-panel" id="tabPanelLogs">
+          <p class="section-title">Histórico de Alterações (log.json)</p>
+          <button type="button" class="btn-load" onclick="carregarLogsUI()" style="margin-bottom: 15px; width: auto;">🔄 Atualizar Logs</button>
+          
+          <table style="width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border); color: var(--text-dim);">
+                <th style="padding: 8px;">Data/Hora</th>
+                <th style="padding: 8px;">Usuário</th>
+                <th style="padding: 8px;">Máquina</th>
+                <th style="padding: 8px;">Origem</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr>
+                <td colspan="4" style="padding: 12px; text-align: center; color: var(--text-faint);">Clique em "Atualizar Logs" ou selecione a aba.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="saveBtn" class="btn-save">Salvar Alterações no GitHub</button>
+          <span id="status"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSha = '';
+    let configAtual = null;
+    let maquinaAtual = "";
+    const PATH = 'parametros.json';
+    const LOG_PATH = 'log.json';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('gh_token');
+      const savedOwner = localStorage.getItem('gh_owner') || 'RogerioFadini';
+      const savedRepo = localStorage.getItem('gh_repo') || 'sap-extension-config';
+      const savedName = localStorage.getItem('gh_name') || '';
+
+      if (savedName) {
+        document.getElementById('nomeOperador').value = savedName;
+      }
+
+      if (savedToken) {
+        document.getElementById('adminToken').value = savedToken;
+        document.getElementById('owner').value = savedOwner;
+        document.getElementById('repo').value = savedRepo;
+
+        document.getElementById('credentialsSection').style.display = 'none';
+        document.getElementById('credentialsBadge').style.display = 'flex';
+        
+        if (savedName) {
+          document.getElementById('badgeUserText').textContent = `✓ Conectado como: ${savedName}`;
+        }
+
+        document.getElementById('loadBtn').click();
+      }
+    });
+
+    function alterarCredenciais() {
+      document.getElementById('credentialsSection').style.display = 'block';
+      document.getElementById('credentialsBadge').style.display = 'none';
+    }
+
+    function trocarTab(nome) {
+      document.getElementById('tabBtnCo11n').classList.toggle('active', nome === 'co11n');
+      document.getElementById('tabBtnImpressao').classList.toggle('active', nome === 'impressao');
+      document.getElementById('tabBtnLogs').classList.toggle('active', nome === 'logs');
+
+      document.getElementById('tabPanelCo11n').classList.toggle('active', nome === 'co11n');
+      document.getElementById('tabPanelImpressao').classList.toggle('active', nome === 'impressao');
+      document.getElementById('tabPanelLogs').classList.toggle('active', nome === 'logs');
+
+      if (nome === 'logs') {
+        carregarLogsUI();
+      }
+    }
+
+    function addRegra(nome = '', causa = '', mat = '') {
+      if (typeof nome !== 'string') nome = '';
+      if (typeof causa !== 'string') causa = '';
+      if (typeof mat !== 'string') mat = '';
+
+      const cleanMat = mat.replace(/^\*+|\*+$/g, '');
+
+      const container = document.getElementById('regrasContainer');
+      const div = document.createElement('div');
+      div.className = 'regras-grid item-row';
+      div.innerHTML = `
+        <div class="input-wrapper">
+          <input class="regra-nome" placeholder="Borra" value="${nome}">
+        </div>
+        <div class="input-wrapper">
+          <input class="regra-causa" placeholder="01" value="${causa}">
+        </div>
+        <div class="input-wrapper">
+          <input class="regra-mat" placeholder="SUCATA" value="${cleanMat}">
+        </div>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addRegraImpressao(nome = '', mat = '') {
+      if (typeof nome !== 'string') nome = '';
+      if (typeof mat !== 'string') mat = '';
+
+      const cleanMat = mat.replace(/^\*+|\*+$/g, '');
+
+      const container = document.getElementById('regrasImpressaoContainer');
+      const div = document.createElement('div');
+      div.className = 'regras-imp-grid item-row';
+      div.innerHTML = `
+        <div class="input-wrapper">
+          <input class="regra-imp-nome" placeholder="Rafia" value="${nome}">
+        </div>
+        <div class="input-wrapper">
+          <span>*</span>
+          <input class="regra-imp-mat" placeholder="SUCATA DE PLASTICO" value="${cleanMat}">
+          <span>*</span>
+        </div>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addCardMaterialEspecial(filtroMat = '', itens = [], suf = '', matKey = '') {
+      const container = document.getElementById('containerMateriaisEspeciais');
+      const card = document.createElement('div');
+      card.className = 'card-material-especial';
+      
+      if (suf) card.setAttribute('data-suf', suf);
+      if (matKey) card.setAttribute('data-mat-key', matKey);
+
+      card.innerHTML = `
+        <div class="card-material-header">
+          <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1;">
+            <label style="margin: 0; color: var(--info); font-weight: bold;">Material / Filtro SAP:</label>
+            <div class="input-wrapper" style="max-width: 250px;">
+              <input type="text" class="mat-especial-filtro" placeholder="Ex: PEBD, AMORFO..." value="${filtroMat}">
+            </div>
+            <span style="font-family: var(--mono); font-size: 10px; color: var(--text-faint); margin-left: 10px;">
+              Chave: ${matKey || '(Nova Gerada)'}
+            </span>
+          </div>
+          <button type="button" class="btn-remove" title="Excluir este Material" onclick="this.closest('.card-material-especial').remove()">X</button>
+        </div>
+
+        <div class="col-header-imp" style="margin-top: 8px;">
+          <div>Item Especial</div>
+          <div>Quantidade (Chave Específica)</div>
+          <div></div>
+        </div>
+
+        <div class="mat-especial-itens-container"></div>
+
+        <button type="button" class="btn-add" style="margin-top: 8px; font-size: 11.5px;" onclick="addRowItemEspecial(this.closest('.card-material-especial'))">
+          + Adicionar Item neste Material
+        </button>
+      `;
+
+      container.appendChild(card);
+
+      if (itens && itens.length > 0) {
+        itens.forEach(it => addRowItemEspecial(card, it.itemVal, it.qtdVal, it.itemKey, it.qtdKey));
+      } else {
+        addRowItemEspecial(card);
+      }
+    }
+
+    function addRowItemEspecial(cardElement, itemVal = '', qtdVal = '', itemKey = '', qtdKey = '') {
+      const itensContainer = cardElement.querySelector('.mat-especial-itens-container');
+      const row = document.createElement('div');
+      row.className = 'regras-imp-grid item-especial-row';
+      row.style.marginBottom = '8px';
+      
+      if (itemKey) row.setAttribute('data-item-key', itemKey);
+      if (qtdKey) row.setAttribute('data-qtd-key', qtdKey);
+
+      row.innerHTML = `
+        <div class="input-wrapper">
+          <input class="mat-item-codigo" placeholder="Código Tela Especial" value="${itemVal}">
+        </div>
+        <div class="input-wrapper">
+          <input class="mat-item-qtd" placeholder="Qtd" value="${qtdVal}">
+        </div>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove()">X</button>
+      `;
+
+      itensContainer.appendChild(row);
+    }
+
+    function addTelaSecundario(nome = '', valor = '') {
+      if (typeof nome !== 'string') nome = '';
+      if (typeof valor !== 'string') valor = '';
+
+      const container = document.getElementById("telasSecundarioContainer");
+      const div = document.createElement("div");
+      div.className = "regras-imp-grid item-row";
+      div.innerHTML = `
+        <div class="input-wrapper">
+          <input class="tela-sec-nome" placeholder="Chave Ex: item, qtd..." value="${nome}">
+        </div>
+        <div class="input-wrapper">
+          <input class="tela-sec-valor" placeholder="Valor da Tela / Quantidade..." value="${valor}">
+        </div>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove()">X</button>
+      `;
+      container.appendChild(div);
+    }
+
+    document.getElementById("maquina").addEventListener("change", (e) => {
+      maquinaAtual = e.target.value;
+      carregarMaquinaUI();
+    });
+
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      const token = document.getElementById('adminToken').value.trim();
+      const owner = document.getElementById('owner').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const nomeOp = document.getElementById('nomeOperador').value.trim();
+
+      if (!token || !owner || !repo || !nomeOp) {
+        alterarCredenciais();
+        return alert('Preencha seu Nome, Token e Dados do Repositório!');
+      }
+
+      showStatus('Carregando dados...', '');
+
+      try {
+        const resp = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${PATH}`,
+          { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' } }
+        );
+
+        if (!resp.ok) throw new Error(`Erro ${resp.status}: Verifique o Token ou Repositório.`);
+
+        localStorage.setItem('gh_token', token);
+        localStorage.setItem('gh_owner', owner);
+        localStorage.setItem('gh_repo', repo);
+        localStorage.setItem('gh_name', nomeOp);
+
+        document.getElementById('credentialsSection').style.display = 'none';
+        document.getElementById('credentialsBadge').style.display = 'flex';
+        document.getElementById('badgeUserText').textContent = `✓ Conectado como: ${nomeOp}`;
+
+        const data = await resp.json();
+        currentSha = data.sha;
+        const jsonText = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+        
+        configAtual = JSON.parse(jsonText);
+        atualizarSelectMaquinas();
+
+        const sel = document.getElementById("maquina");
+        if (sel.options.length > 0) {
+          maquinaAtual = sel.value;
+          carregarMaquinaUI();
+        }
+
+        document.getElementById('editorForm').style.display = 'block';
+        showStatus('Dados carregados com sucesso!', 'success');
+
+      } catch (e) {
+        console.error(e);
+        alterarCredenciais();
+        showStatus(e.message, 'error');
+      }
+    });
+
+    function sincronizarCamposDaTela() {
+      if (!maquinaAtual || !configAtual) return;
+
+      const novoNome = document.getElementById("nomeMaquina").value.trim();
+      if (novoNome && novoNome !== maquinaAtual) {
+        if (configAtual.VAZAO_MAQUINA[novoNome]) {
+          alert(`Já existe uma máquina com o nome ${novoNome}. Mantendo nome anterior.`);
+        } else {
+          configAtual.VAZAO_MAQUINA[novoNome] = configAtual.VAZAO_MAQUINA[maquinaAtual];
+          delete configAtual.VAZAO_MAQUINA[maquinaAtual];
+          configAtual.regrasRefugo[novoNome] = configAtual.regrasRefugo[maquinaAtual] || [];
+          delete configAtual.regrasRefugo[maquinaAtual];
+          if (!configAtual.regrasImpressao) configAtual.regrasImpressao = {};
+          configAtual.regrasImpressao[novoNome] = configAtual.regrasImpressao[maquinaAtual] || [];
+          delete configAtual.regrasImpressao[maquinaAtual];
+          if (configAtual.TELAS_PRIMARIO && configAtual.TELAS_PRIMARIO[maquinaAtual]) {
+            configAtual.TELAS_PRIMARIO[novoNome] = configAtual.TELAS_PRIMARIO[maquinaAtual];
+            delete configAtual.TELAS_PRIMARIO[maquinaAtual];
+          }
+          if (configAtual.TELAS_SECUNDARIO && configAtual.TELAS_SECUNDARIO[maquinaAtual]) {
+            configAtual.TELAS_SECUNDARIO[novoNome] = configAtual.TELAS_SECUNDARIO[maquinaAtual];
+            delete configAtual.TELAS_SECUNDARIO[maquinaAtual];
+          }
+          maquinaAtual = novoNome;
+          atualizarSelectMaquinas();
+        }
+      }
+
+      configAtual.VAZAO_MAQUINA[maquinaAtual] = parseInt(document.getElementById('vazao').value) || 0;
+
+      // Refugo
+      const regras = [];
+      document.querySelectorAll('#regrasContainer .item-row').forEach(row => {
+        const nome = row.querySelector('.regra-nome').value.trim();
+        const causa = row.querySelector('.regra-causa').value.trim();
+        const matRaw = row.querySelector('.regra-mat').value.trim().replace(/^\*+|\*+$/g, '');
+        if (nome) regras.push({ nome, causa, mat: matRaw });
+      });
+      configAtual.regrasRefugo[maquinaAtual] = regras;
+
+      // Impressão
+      if (!configAtual.regrasImpressao) configAtual.regrasImpressao = {};
+      const regrasImpressao = [];
+      document.querySelectorAll('#regrasImpressaoContainer .item-row').forEach(row => {
+        const nome = row.querySelector('.regra-imp-nome').value.trim();
+        const matRaw = row.querySelector('.regra-imp-mat').value.trim().replace(/^\*+|\*+$/g, '');
+        if (nome) regrasImpressao.push({ nome, mat: matRaw ? `*${matRaw}*` : '' });
+      });
+      configAtual.regrasImpressao[maquinaAtual] = regrasImpressao;
+
+      if (!configAtual.TELAS_PRIMARIO) configAtual.TELAS_PRIMARIO = {};
+      
+      const telasPrimObj = {};
+      const padraoCod = document.getElementById("itemPadraoCodigo").value.trim();
+      const padraoQtd = document.getElementById("itemPadraoQtd").value.trim();
+      
+      if (padraoCod) {
+        telasPrimObj["ITEM_PADRAO"] = padraoCod;
+        telasPrimObj["QUANTIDADE"] = padraoQtd || "1";
+      }
+
+      const especiaisObj = {};
+      const cards = document.querySelectorAll(".card-material-especial");
+      
+      cards.forEach((card, i) => {
+        const filtro = card.querySelector(".mat-especial-filtro").value.trim();
+        if (!filtro) return;
+
+        let suf = card.getAttribute('data-suf');
+        let matKey = card.getAttribute('data-mat-key');
+        
+        if (!suf) suf = `ESPECIAL_${i + 1}`;
+        if (!matKey) matKey = `MATERIAL_${suf}`;
+
+        especiaisObj[matKey] = filtro;
+
+        const itemRows = card.querySelectorAll(".item-especial-row");
+        itemRows.forEach((row, j) => {
+          const cod = row.querySelector(".mat-item-codigo").value.trim();
+          const qtd = row.querySelector(".mat-item-qtd").value.trim();
+          if (cod) {
+            let iKey = row.getAttribute('data-item-key');
+            let qKey = row.getAttribute('data-qtd-key');
+
+            if (!iKey) {
+              iKey = j === 0 ? `ITEM_${suf}` : `ITEM_${suf}_${j + 1}`;
+            }
+            if (!qKey || qKey === "QUANTIDADE") {
+              qKey = j === 0 ? `QUANTIDADE_${suf}` : `QUANTIDADE_${suf}_${j + 1}`;
+            }
+
+            especiaisObj[iKey] = cod;
+            especiaisObj[qKey] = qtd;
+          }
+        });
+      });
+
+      if (Object.keys(especiaisObj).length > 0) {
+        telasPrimObj["ESPECIAIS"] = especiaisObj;
+      }
+
+      configAtual.TELAS_PRIMARIO[maquinaAtual] = telasPrimObj;
+
+      if (!configAtual.TELAS_SECUNDARIO) configAtual.TELAS_SECUNDARIO = {};
+      configAtual.TELAS_SECUNDARIO[maquinaAtual] = {};
+      document.querySelectorAll("#telasSecundarioContainer .item-row").forEach(row => {
+        const chave = row.querySelector(".tela-sec-nome").value.trim();
+        const valor = row.querySelector(".tela-sec-valor").value.trim();
+        if (chave) configAtual.TELAS_SECUNDARIO[maquinaAtual][chave] = valor;
+      });
+    }
+
+    function atualizarSelectMaquinas() {
+      const sel = document.getElementById("maquina");
+      sel.innerHTML = "";
+      Object.keys(configAtual.VAZAO_MAQUINA || {}).forEach(nome => {
+        const op = document.createElement("option");
+        op.value = nome;
+        op.textContent = nome;
+        if (nome === maquinaAtual) op.selected = true;
+        sel.appendChild(op);
+      });
+    }
+
+    function adicionarNovaMaquina() {
+      const nome = prompt("Digite o nome da nova máquina (ex: REC03, ERE04):");
+      if (!nome) return;
+      const nomeUpper = nome.trim().toUpperCase();
+      if (configAtual.VAZAO_MAQUINA[nomeUpper]) return alert("Esta máquina já existe!");
+
+      configAtual.VAZAO_MAQUINA[nomeUpper] = 1000;
+      configAtual.regrasRefugo[nomeUpper] = [];
+      if (!configAtual.regrasImpressao) configAtual.regrasImpressao = {};
+      configAtual.regrasImpressao[nomeUpper] = [];
+      if (!configAtual.TELAS_PRIMARIO) configAtual.TELAS_PRIMARIO = {};
+      configAtual.TELAS_PRIMARIO[nomeUpper] = {};
+      if (!configAtual.TELAS_SECUNDARIO) configAtual.TELAS_SECUNDARIO = {};
+      configAtual.TELAS_SECUNDARIO[nomeUpper] = {};
+
+      maquinaAtual = nomeUpper;
+      atualizarSelectMaquinas();
+      carregarMaquinaUI();
+    }
+
+    function excluirMaquinaAtual() {
+      if (!confirm(`Deseja realmente excluir a máquina "${maquinaAtual}"?`)) return;
+      delete configAtual.VAZAO_MAQUINA[maquinaAtual];
+      delete configAtual.regrasRefugo[maquinaAtual];
+      if (configAtual.regrasImpressao) delete configAtual.regrasImpressao[maquinaAtual];
+      if (configAtual.TELAS_PRIMARIO) delete configAtual.TELAS_PRIMARIO[maquinaAtual];
+      if (configAtual.TELAS_SECUNDARIO) delete configAtual.TELAS_SECUNDARIO[maquinaAtual];
+
+      const restanted = Object.keys(configAtual.VAZAO_MAQUINA);
+      if (restanted.length > 0) {
+        maquinaAtual = restanted[0];
+        atualizarSelectMaquinas();
+        carregarMaquinaUI();
+      } else {
+        document.getElementById('editorForm').style.display = 'none';
+      }
+    }
+
+    async function registrarLogSeparado(owner, repo, token, usuario, maquina) {
+      let logs = [];
+      let logSha = null;
+      try {
+        const respGet = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${LOG_PATH}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (respGet.ok) {
+          const dataGet = await respGet.json();
+          logSha = dataGet.sha;
+          logs = JSON.parse(decodeURIComponent(escape(atob(dataGet.content.replace(/\n/g, "")))));
+        }
+      } catch (e) { console.log('Criando log.json'); }
+
+      if (!Array.isArray(logs)) logs = [];
+      logs.push({ data: new Date().toLocaleString('pt-BR'), usuario: usuario, maquina_editada: maquina, plataforma: "Admin Panel" });
+      if (logs.length > 100) logs.shift();
+
+      const payload = { message: `Log: alteração por ${usuario} [${maquina}]`, content: btoa(unescape(encodeURIComponent(JSON.stringify(logs, null, 2)))) };
+      if (logSha) payload.sha = logSha;
+
+      await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${LOG_PATH}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function carregarLogsUI() {
+      const token = document.getElementById('adminToken').value.trim();
+      const owner = document.getElementById('owner').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const tbody = document.getElementById('logsTableBody');
+      if (!token) return;
+
+      tbody.innerHTML = '<tr><td colspan="4" style="padding: 12px; text-align: center;">Carregando logs...</td></tr>';
+      try {
+        const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${LOG_PATH}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+        });
+        if (!resp.ok) { tbody.innerHTML = '<tr><td colspan="4" style="padding: 12px; text-align: center; color: var(--danger);">Sem logs.</td></tr>'; return; }
+        const data = await resp.json();
+        const logs = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, "")))));
+
+        if (!Array.isArray(logs) || logs.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding: 12px; text-align: center;">Sem registros.</td></tr>'; return; }
+        tbody.innerHTML = logs.slice().reverse().map(log => `
+          <tr style="border-bottom: 1px solid var(--border-soft);">
+            <td style="padding: 8px; color: var(--text-dim);">${log.data || '-'}</td>
+            <td style="padding: 8px; color: var(--accent); font-weight: bold;">${log.usuario || '-'}</td>
+            <td style="padding: 8px;">${log.maquina_editada || '-'}</td>
+            <td style="padding: 8px; color: var(--text-faint);">${log.plataforma || '-'}</td>
+          </tr>`).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 12px; text-align: center; color: var(--danger);">Erro.</td></tr>';
+      }
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const token = document.getElementById('adminToken').value.trim();
+      const owner = document.getElementById('owner').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const nomeOperador = document.getElementById('nomeOperador').value.trim() || 'Usuário Desconhecido';
+      if (!token) return alert('Token necessário');
+
+      sincronizarCamposDaTela();
+      showStatus('Salvando no GitHub...', '');
+
+      try {
+        const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${PATH}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+          body: JSON.stringify({
+            message: `Atualizado por ${nomeOperador} [${maquinaAtual}]`,
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(configAtual, null, 2)))),
+            sha: currentSha
+          })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          currentSha = data.content.sha;
+          try { await registrarLogSeparado(owner, repo, token, nomeOperador, maquinaAtual); } catch (logErr) {}
+          showStatus('Salvo com sucesso no GitHub!', 'success');
+        } else {
+          const errData = await resp.json();
+          showStatus(`Erro: ${errData.message || resp.statusText}`, 'error');
+        }
+      } catch (e) { showStatus('Erro na requisição ao salvar.', 'error'); }
+    });
+
+    function carregarMaquinaUI() {
+      document.getElementById("nomeMaquina").value = maquinaAtual;
+      document.getElementById("vazao").value = configAtual.VAZAO_MAQUINA[maquinaAtual] || 0;
+
+      const containerRegras = document.getElementById("regrasContainer"); containerRegras.innerHTML = "";
+      (configAtual.regrasRefugo[maquinaAtual] || []).forEach(r => addRegra(r.nome, r.causa, r.mat));
+
+      const containerRegrasImpressao = document.getElementById('regrasImpressaoContainer'); containerRegrasImpressao.innerHTML = "";
+      ((configAtual.regrasImpressao && configAtual.regrasImpressao[maquinaAtual]) || []).forEach(r => addRegraImpressao(r.nome, r.mat));
+
+      const containerMat = document.getElementById("containerMateriaisEspeciais");
+      containerMat.innerHTML = "";
+
+      const telasP = (configAtual.TELAS_PRIMARIO && configAtual.TELAS_PRIMARIO[maquinaAtual]) || {};
+
+      document.getElementById("itemPadraoCodigo").value = telasP["ITEM_PADRAO"] || "";
+      document.getElementById("itemPadraoQtd").value = telasP["QUANTIDADE"] || telasP["QTD_PADRAO"] || "";
+
+      const especiaisObj = telasP["ESPECIAIS"] || telasP;
+
+      const chavesMaterial = Object.keys(especiaisObj).filter(k => k.toUpperCase().startsWith("MATERIAL_"));
+
+      chavesMaterial.forEach(matKey => {
+        const suf = matKey.replace(/^MATERIAL_/i, "");
+        const matFiltro = especiaisObj[matKey];
+
+        const itemKeys = Object.keys(especiaisObj).filter(k => k.toUpperCase().startsWith("ITEM_" + suf.toUpperCase()));
+
+        const listItens = [];
+        itemKeys.forEach(iKey => {
+          const itemVal = especiaisObj[iKey];
+          const itemSuf = iKey.replace(/^ITEM_/i, "");
+          
+          let qtdKey = "QUANTIDADE_" + itemSuf;
+          if (!especiaisObj[qtdKey]) qtdKey = "QTD_" + itemSuf;
+          if (!especiaisObj[qtdKey]) qtdKey = "QUANTIDADE";
+          
+          const qtdVal = especiaisObj[qtdKey] || "1";
+          listItens.push({ itemVal, qtdVal, itemKey: iKey, qtdKey: qtdKey });
+        });
+
+        if (listItens.length === 0) {
+           listItens.push({ itemVal: "", qtdVal: "1", itemKey: "ITEM_" + suf, qtdKey: "QUANTIDADE_" + suf });
+        }
+
+        addCardMaterialEspecial(matFiltro, listItens, suf, matKey);
+      });
+
+      document.getElementById("telasSecundarioContainer").innerHTML = "";
+      const telasS = (configAtual.TELAS_SECUNDARIO && configAtual.TELAS_SECUNDARIO[maquinaAtual]) || {};
+      Object.entries(telasS).forEach(([nome, valor]) => addTelaSecundario(nome, valor));
+    }
+
+    function showStatus(text, type) {
+      const s = document.getElementById('status');
+      s.textContent = text;
+      s.className = type;
+    }
+  </script>
+</body>
+</html>
