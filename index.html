@@ -476,18 +476,17 @@
 
       <div id="credentialsBadge" class="credentials-badge">
         <span id="badgeUserText" style="font-size: 12.5px; font-weight: 600; color: var(--ok);">✓ Conectado ao GitHub</span>
-        <button type="button" onclick="alterarCredenciais()" style="padding: 6px 10px; font-size: 11px; background: transparent; color: var(--text-dim); border: 1px solid var(--border);">⚙️ Trocar Token / Usuário</button>
+        <button type="button" onclick="alterarCredenciais()" style="padding: 6px 10px; font-size: 11px; background: transparent; color: var(--text-dim); border: 1px solid var(--border);">⚙️ Trocar Token</button>
       </div>
 
       <div class="config-section" id="credentialsSection">
-        <label>Identificação & Acesso:</label>
-        <input type="text" id="nomeOperador" placeholder="Seu Nome (Para o log.json)" style="margin-bottom: 10px;">
+        <label>Token do GitHub:</label>
         <input type="password" id="adminToken" placeholder="Token ghp_...">
-        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <input type="text" id="owner" value="RogerioFadini" placeholder="Usuário GitHub">
-          <input type="text" id="repo" value="sap-extension-config" placeholder="Nome do Repositório">
-          <button type="button" id="loadBtn" class="btn-load" style="width: 100%;">Carregar Dados</button>
-        </div>
+        <!-- Nome, usuário e repositório ficam fixos no código (ADMIN_CONFIG). -->
+        <input type="hidden" id="nomeOperador">
+        <input type="hidden" id="owner">
+        <input type="hidden" id="repo">
+        <button type="button" id="loadBtn" class="btn-load" style="width: 100%; margin-top: 10px;">Carregar Dados</button>
       </div>
 
       <div id="editorForm" style="display:none;">
@@ -643,28 +642,21 @@
     let maquinaAtual = "";
     const PATH = 'parametros.json';
     const LOG_PATH = 'log.json';
+    // Fixos no código: só o token é digitado na tela.
+    const ADMIN_CONFIG = { nome: 'Rogério Fadini', owner: 'RogerioFadini', repo: 'sap-extension-config' };
+    document.getElementById('nomeOperador').value = ADMIN_CONFIG.nome;
+    document.getElementById('owner').value = ADMIN_CONFIG.owner;
+    document.getElementById('repo').value = ADMIN_CONFIG.repo;
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedToken = localStorage.getItem('gh_token');
-      const savedOwner = localStorage.getItem('gh_owner') || 'RogerioFadini';
-      const savedRepo = localStorage.getItem('gh_repo') || 'sap-extension-config';
-      const savedName = localStorage.getItem('gh_name') || '';
-
-      if (savedName) {
-        document.getElementById('nomeOperador').value = savedName;
-      }
 
       if (savedToken) {
         document.getElementById('adminToken').value = savedToken;
-        document.getElementById('owner').value = savedOwner;
-        document.getElementById('repo').value = savedRepo;
 
         document.getElementById('credentialsSection').style.display = 'none';
         document.getElementById('credentialsBadge').style.display = 'flex';
-        
-        if (savedName) {
-          document.getElementById('badgeUserText').textContent = `✓ Conectado como: ${savedName}`;
-        }
+        document.getElementById('badgeUserText').textContent = `✓ Conectado como: ${ADMIN_CONFIG.nome}`;
 
         document.getElementById('loadBtn').click();
       }
@@ -876,7 +868,7 @@
 
       if (!token || !owner || !repo || !nomeOp) {
         alterarCredenciais();
-        return alert('Preencha seu Nome, Token e Dados do Repositório!');
+        return alert('Preencha o token do GitHub!');
       }
 
       showStatus('Carregando dados...', '');
@@ -890,9 +882,6 @@
         if (!resp.ok) throw new Error(`Erro ${resp.status}: Verifique o Token ou Repositório.`);
 
         localStorage.setItem('gh_token', token);
-        localStorage.setItem('gh_owner', owner);
-        localStorage.setItem('gh_repo', repo);
-        localStorage.setItem('gh_name', nomeOp);
 
         document.getElementById('credentialsSection').style.display = 'none';
         document.getElementById('credentialsBadge').style.display = 'flex';
