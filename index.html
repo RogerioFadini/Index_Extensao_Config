@@ -4,6 +4,27 @@
   <title>Painel Admin — Parâmetros da Extensão</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    // Sempre a versão mais nova: o GitHub Pages deixa a página em cache por ~10 min.
+    // Busca o admin.html sem cache, tira um hash do conteúdo e, se a URL aberta não for
+    // dessa versão (?v=hash), troca para ela. URL nova nunca vem do cache, então não precisa de Shift+F5.
+    (async () => {
+      try {
+        if (!window.crypto?.subtle || location.protocol === 'file:') return;
+        const resp = await fetch(location.pathname, { cache: 'no-store' });
+        if (!resp.ok) return;
+        const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(await resp.text()));
+        const versao = [...new Uint8Array(bytes)].slice(0, 6).map(b => b.toString(16).padStart(2, '0')).join('');
+        const params = new URLSearchParams(location.search);
+        if (params.get('v') === versao) return;
+        params.set('v', versao);
+        location.replace(`${location.pathname}?${params}${location.hash}`);
+      } catch (e) { /* sem rede ou sem suporte: segue com a página que abriu */ }
+    })();
+  </script>
   <style>
     :root {
       /* Tema Valgroup — o mesmo da extensão (style.css / options.html). */
