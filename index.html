@@ -597,9 +597,10 @@
           <p class="section-title">Ordem da vez (API do n8n) por linha</p>
 
           <div class="odv-ajuda">
-            <b>Ligada:</b> antes de apontar, a extensão pergunta ao sistema qual ordem usar. Bloqueia o apontamento na ordem errada,
-            divide o peso quando a ordem acaba no meio dele e manda a cópia de cada apontamento.<br>
-            <b>Desligada:</b> a linha funciona como hoje, sem nenhuma chamada.<br>
+            <b>Ligada:</b> antes de apontar, a extensão pergunta ao n8n qual ordem usar e bloqueia o apontamento na ordem errada.
+            Nas EREMAs, recicladoras e moagem, pergunta "Trocou de lote?" e divide o peso quando a ordem muda no meio da hora.
+            Na pós-condensação (VISCO, SSPA, SSPB) vale a ordem do dia. Em todas, manda a cópia de cada apontamento.<br>
+            <b>Desligada:</b> o operador escolhe a ordem e a extensão não faz nenhuma chamada ao n8n.<br>
             Esta lista vale para todas as linhas (não só a máquina selecionada acima). Clique em <b>Salvar</b> para aplicar.
           </div>
 
@@ -687,6 +688,15 @@
       }
     }
 
+    // Mesma lista da extensão (content-co11n.js): pós-condensação segue a ordem do dia.
+    const LINHAS_ORDEM_DIARIA = ['VISCO', 'SSPA', 'SSPB'];
+
+    function descreverModoOrdem(linha, ligada) {
+      if (!ligada) return 'Desligada: o operador escolhe a ordem, sem consulta ao n8n';
+      if (LINHAS_ORDEM_DIARIA.includes(linha)) return 'Ligada: ordem do dia (virada às 00h20), conferida no n8n + cópia do apontamento';
+      return 'Ligada: ordem pela troca física de lote + tempo em processo, com divisão do peso + cópia do apontamento';
+    }
+
     // Toggle por linha: configAtual.ORDEM_DA_VEZ = { ERE03: true, ... }. Ausente = lógica atual.
     function renderOrdemDaVez() {
       const lista = document.getElementById('ordemDaVezLista');
@@ -705,7 +715,7 @@
         item.innerHTML = `
           <div>
             <div class="odv-nome"></div>
-            <div class="odv-modo">${ligada ? 'Nova lógica: ordem da vez (n8n)' : 'Como está hoje'}</div>
+            <div class="odv-modo">${descreverModoOrdem(linha, ligada)}</div>
           </div>
           <label class="switch" title="Usar a ordem da vez nesta linha">
             <input type="checkbox"${ligada ? ' checked' : ""}>
