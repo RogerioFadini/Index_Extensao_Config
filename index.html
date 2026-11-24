@@ -458,6 +458,17 @@
     .switch input:checked + .trilho { background: var(--accent2); border-color: var(--accent2); }
     .switch input:checked + .trilho::before { transform: translateX(20px); background: #fff; }
     .switch input:focus-visible + .trilho { outline: 2px solid var(--accent2); outline-offset: 2px; }
+
+    /* ---------- Listas de EPI e objetos técnicos ---------- */
+    .grid-cfg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .grid-setor { display: grid; grid-template-columns: 3fr 2fr 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .grid-epi { display: grid; grid-template-columns: 2fr 6fr 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .grid-obj { display: grid; grid-template-columns: 5fr 5fr 3fr 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .col-cab { font-size: 10.5px; font-weight: 600; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+    .seletor-linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .seletor-linha select { flex: 1; min-width: 200px; }
+    .contagem { font-size: 12px; color: var(--text-dim); margin: 6px 0 10px; }
+    .aviso-lista { font-size: 12.5px; color: var(--ambar); margin-bottom: 12px; }
   </style>
 </head>
 <body>
@@ -508,6 +519,8 @@
           <button type="button" class="tab-btn active" id="tabBtnCo11n" onclick="trocarTab('co11n')">⚙️ CO11N / Refugo</button>
           <button type="button" class="tab-btn" id="tabBtnImpressao" onclick="trocarTab('impressao')">🏷️ Etiquetas</button>
           <button type="button" class="tab-btn" id="tabBtnOrdemDaVez" onclick="trocarTab('ordemDaVez')">🔁 Ordem da vez</button>
+          <button type="button" class="tab-btn" id="tabBtnEpis" onclick="trocarTab('epis')">🦺 EPIs</button>
+          <button type="button" class="tab-btn" id="tabBtnObjetos" onclick="trocarTab('objetos')">🔧 Objetos técnicos</button>
           <button type="button" class="tab-btn" id="tabBtnLogs" onclick="trocarTab('logs')">📜 Histórico</button>
         </div>
 
@@ -607,6 +620,84 @@
           <div id="ordemDaVezLista" class="odv-lista"></div>
         </div>
 
+        <!-- Painel EPIs (epis.json) -->
+        <div class="tab-panel" id="tabPanelEpis">
+          <p class="section-title">Solicitação de EPI (epis.json)</p>
+          <div class="odv-ajuda">Vale para todas as máquinas (não depende da máquina selecionada acima). Clique em <b>Salvar</b> para aplicar.</div>
+          <div id="episAviso" class="aviso-lista" style="display:none"></div>
+
+          <div class="field-group">
+            <label>Configuração da reserva:</label>
+            <div class="grid-cfg">
+              <div><div class="col-cab">Tipo de movimento</div><input type="text" id="epiTipoMov"></div>
+              <div><div class="col-cab">Centro</div><input type="text" id="epiCentro"></div>
+              <div><div class="col-cab">Depósito</div><input type="text" id="epiDeposito"></div>
+              <div><div class="col-cab">Máx. itens</div><input type="number" id="epiMaxItens" min="1"></div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Setores e centros de custo:</label>
+            <div class="grid-setor col-cab"><div>Setor</div><div>Centro de custo</div><div></div></div>
+            <div id="episSetores"></div>
+            <button type="button" class="btn-add" onclick="addSetor()">+ Adicionar setor</button>
+          </div>
+
+          <div class="field-group">
+            <label>Categoria:</label>
+            <div class="seletor-linha">
+              <select id="epiCategoria"></select>
+              <button type="button" class="btn-add-machine" onclick="novaCategoriaEpi()">+ Nova</button>
+              <button type="button" class="btn-add-machine" onclick="renomearCategoriaEpi()">Renomear</button>
+              <button type="button" class="btn-delete" onclick="excluirCategoriaEpi()">Excluir</button>
+            </div>
+            <div class="contagem" id="epiContagem"></div>
+            <div class="grid-epi col-cab"><div>Material</div><div>Descrição</div><div></div></div>
+            <div id="episItens"></div>
+            <button type="button" class="btn-add" onclick="addEpi()">+ Adicionar EPI nesta categoria</button>
+          </div>
+        </div>
+
+        <!-- Painel Objetos técnicos (objetos_tecnicos.json) -->
+        <div class="tab-panel" id="tabPanelObjetos">
+          <p class="section-title">Nota de avaria · objetos técnicos (objetos_tecnicos.json)</p>
+          <div class="odv-ajuda">Vale para todas as máquinas da nota (não depende da máquina selecionada acima). Clique em <b>Salvar</b> para aplicar.</div>
+          <div id="objAviso" class="aviso-lista" style="display:none"></div>
+
+          <div class="field-group">
+            <label>Tipo de nota:</label>
+            <div class="grid-cfg" style="grid-template-columns: 1fr 2fr;">
+              <div><div class="col-cab">Código</div><input type="text" id="objTipoNota"></div>
+              <div><div class="col-cab">Nome que aparece no SAP</div><input type="text" id="objNomeTipoNota"></div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Máquina / área:</label>
+            <div class="seletor-linha">
+              <select id="objMaquina"></select>
+              <button type="button" class="btn-add-machine" onclick="novaMaquinaObj()">+ Nova</button>
+              <button type="button" class="btn-add-machine" onclick="renomearMaquinaObj()">Renomear</button>
+              <button type="button" class="btn-delete" onclick="excluirMaquinaObj()">Excluir</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Parte do processo:</label>
+            <div class="seletor-linha">
+              <select id="objParte"></select>
+              <button type="button" class="btn-add-machine" onclick="novaParteObj()">+ Nova</button>
+              <button type="button" class="btn-add-machine" onclick="renomearParteObj()">Renomear</button>
+              <button type="button" class="btn-delete" onclick="excluirParteObj()">Excluir</button>
+            </div>
+            <div class="contagem" id="objContagem"></div>
+            <input type="text" id="objFiltro" placeholder="Filtrar nesta parte (código, descrição ou tipo)" style="margin-bottom: 10px;">
+            <div class="grid-obj col-cab"><div>Código</div><div>Descrição</div><div>Tipo de equipamento</div><div></div></div>
+            <div id="objItens"></div>
+            <button type="button" class="btn-add" onclick="addObjeto()">+ Adicionar objeto nesta parte</button>
+          </div>
+        </div>
+
         <!-- Painel Histórico -->
         <div class="tab-panel" id="tabPanelLogs">
           <p class="section-title">Histórico de Alterações (log.json)</p>
@@ -668,24 +759,17 @@
       document.getElementById('credentialsBadge').style.display = 'none';
     }
 
+    const ABAS = { co11n: 'Co11n', impressao: 'Impressao', ordemDaVez: 'OrdemDaVez', epis: 'Epis', objetos: 'Objetos', logs: 'Logs' };
+
     function trocarTab(nome) {
-      document.getElementById('tabBtnCo11n').classList.toggle('active', nome === 'co11n');
-      document.getElementById('tabBtnImpressao').classList.toggle('active', nome === 'impressao');
-      document.getElementById('tabBtnOrdemDaVez').classList.toggle('active', nome === 'ordemDaVez');
-      document.getElementById('tabBtnLogs').classList.toggle('active', nome === 'logs');
-
-      document.getElementById('tabPanelCo11n').classList.toggle('active', nome === 'co11n');
-      document.getElementById('tabPanelImpressao').classList.toggle('active', nome === 'impressao');
-      document.getElementById('tabPanelOrdemDaVez').classList.toggle('active', nome === 'ordemDaVez');
-      document.getElementById('tabPanelLogs').classList.toggle('active', nome === 'logs');
-
-      if (nome === 'ordemDaVez') {
-        renderOrdemDaVez();
-      }
-
-      if (nome === 'logs') {
-        carregarLogsUI();
-      }
+      Object.entries(ABAS).forEach(([chave, sufixo]) => {
+        document.getElementById('tabBtn' + sufixo).classList.toggle('active', chave === nome);
+        document.getElementById('tabPanel' + sufixo).classList.toggle('active', chave === nome);
+      });
+      if (nome === 'ordemDaVez') renderOrdemDaVez();
+      if (nome === 'epis') renderEpis();
+      if (nome === 'objetos') renderObjetos();
+      if (nome === 'logs') carregarLogsUI();
     }
 
     // Mesma lista da extensão (content-co11n.js): pós-condensação segue a ordem do dia.
@@ -730,6 +814,283 @@
         });
         lista.appendChild(item);
       });
+    }
+
+    // ======================================================================
+    // Arquivos extras do repositório: epis.json e objetos_tecnicos.json
+    // ======================================================================
+    const ARQ_EPIS = 'epis.json';
+    const ARQ_OBJ = 'objetos_tecnicos.json';
+    const PADRAO_EPIS = () => ({
+      config: { tipo_movimento: '201', centro: 'P205', deposito: 'MRO', max_itens: 15,
+                setores: [{ nome: 'Resinas', centro_custo: 'EI122' }, { nome: 'Recicladoras', centro_custo: 'EI121' }] },
+      categorias: []
+    });
+    const PADRAO_OBJ = () => ({ config: { tipo_nota: 'Z1', nome_tipo_nota: 'Nota de avaria' }, maquinas: [] });
+    const extras = {
+      [ARQ_EPIS]: { dados: null, sha: null, alterado: false, existe: false },
+      [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false }
+    };
+    const marcarAlterado = nome => { extras[nome].alterado = true; showStatus('Alteração pendente: clique em Salvar para aplicar.', ''); };
+
+    const decodificarBase64 = b64 => decodeURIComponent(escape(atob(b64.replace(/\n/g, ''))));
+    const codificarBase64 = txt => btoa(unescape(encodeURIComponent(txt)));
+
+    async function carregarArquivoExtra(nome, token, owner, repo) {
+      const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${nome}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
+      });
+      if (resp.status === 404) {
+        extras[nome] = { dados: nome === ARQ_EPIS ? PADRAO_EPIS() : PADRAO_OBJ(), sha: null, alterado: false, existe: false };
+        return;
+      }
+      if (!resp.ok) throw new Error(`Erro ${resp.status} ao carregar ${nome}`);
+      const data = await resp.json();
+      extras[nome] = { dados: JSON.parse(decodificarBase64(data.content)), sha: data.sha, alterado: false, existe: true };
+    }
+
+    async function salvarArquivoExtra(nome, token, owner, repo, usuario) {
+      const ex = extras[nome];
+      const payload = {
+        message: `${nome} atualizado por ${usuario}`,
+        content: codificarBase64(JSON.stringify(ex.dados, null, 2))
+      };
+      if (ex.sha) payload.sha = ex.sha;
+      const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${nome}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(`${nome}: ${err.message || resp.statusText}`);
+      }
+      const data = await resp.json();
+      ex.sha = data.content.sha;
+      ex.alterado = false;
+      ex.existe = true;
+    }
+
+    // Linha de campos ligada direto ao objeto (cada digitação já altera os dados).
+    function linhaCampos(container, classe, obj, campos, aoRemover, arquivo) {
+      const div = document.createElement('div');
+      div.className = classe;
+      campos.forEach(([chave, placeholder, tipo]) => {
+        const w = document.createElement('div');
+        w.className = 'input-wrapper';
+        const input = document.createElement('input');
+        input.type = tipo || 'text';
+        input.placeholder = placeholder;
+        input.value = obj[chave] ?? '';
+        input.addEventListener('input', () => { obj[chave] = input.value.trim(); marcarAlterado(arquivo); });
+        w.appendChild(input);
+        div.appendChild(w);
+      });
+      const bt = document.createElement('button');
+      bt.type = 'button';
+      bt.className = 'btn-remove';
+      bt.textContent = 'X';
+      bt.addEventListener('click', () => { aoRemover(); marcarAlterado(arquivo); });
+      div.appendChild(bt);
+      container.appendChild(div);
+      return div;
+    }
+
+    function preencherSelect(sel, nomes, atual) {
+      sel.innerHTML = '';
+      nomes.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+      if (nomes.includes(atual)) sel.value = atual;
+      return sel.value;
+    }
+
+    function ligarConfig(id, obj, chave, arquivo, numero = false) {
+      const el = document.getElementById(id);
+      el.value = obj[chave] ?? '';
+      el.oninput = () => { obj[chave] = numero ? (parseInt(el.value, 10) || 0) : el.value.trim(); marcarAlterado(arquivo); };
+    }
+
+    // ---------------------------- EPIs ----------------------------
+    let categoriaEpiAtual = '';
+
+    function renderEpis() {
+      const dados = extras[ARQ_EPIS].dados;
+      if (!dados) return;
+      const aviso = document.getElementById('episAviso');
+      aviso.style.display = extras[ARQ_EPIS].existe ? 'none' : 'block';
+      aviso.textContent = 'epis.json ainda não existe no repositório: ele será criado ao salvar.';
+      dados.config = dados.config || {};
+      ligarConfig('epiTipoMov', dados.config, 'tipo_movimento', ARQ_EPIS);
+      ligarConfig('epiCentro', dados.config, 'centro', ARQ_EPIS);
+      ligarConfig('epiDeposito', dados.config, 'deposito', ARQ_EPIS);
+      ligarConfig('epiMaxItens', dados.config, 'max_itens', ARQ_EPIS, true);
+
+      const setores = (dados.config.setores = dados.config.setores || []);
+      const contSet = document.getElementById('episSetores');
+      contSet.innerHTML = '';
+      setores.forEach((st, i) => linhaCampos(contSet, 'grid-setor', st, [['nome', 'Setor'], ['centro_custo', 'Centro de custo']],
+        () => { setores.splice(setores.indexOf(st), 1); renderEpis(); }, ARQ_EPIS));
+
+      const cats = (dados.categorias = dados.categorias || []);
+      const sel = document.getElementById('epiCategoria');
+      categoriaEpiAtual = preencherSelect(sel, cats.map(c => c.nome), categoriaEpiAtual);
+      sel.onchange = () => { categoriaEpiAtual = sel.value; renderEpis(); };
+      const cat = cats.find(c => c.nome === categoriaEpiAtual);
+      const cont = document.getElementById('episItens');
+      cont.innerHTML = '';
+      const total = cats.reduce((s, c) => s + (c.itens || []).length, 0);
+      document.getElementById('epiContagem').textContent = cat
+        ? `${cat.itens.length} EPI(s) nesta categoria · ${total} no total · ${cats.length} categoria(s)`
+        : 'Nenhuma categoria. Clique em "+ Nova".';
+      if (!cat) return;
+      cat.itens = cat.itens || [];
+      cat.itens.forEach(item => linhaCampos(cont, 'grid-epi', item, [['material', 'Material'], ['descricao', 'Descrição']],
+        () => { cat.itens.splice(cat.itens.indexOf(item), 1); renderEpis(); }, ARQ_EPIS));
+    }
+
+    function addSetor() {
+      const d = extras[ARQ_EPIS].dados; if (!d) return;
+      d.config.setores.push({ nome: '', centro_custo: '' });
+      marcarAlterado(ARQ_EPIS); renderEpis();
+    }
+    function addEpi() {
+      const cat = extras[ARQ_EPIS].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
+      if (!cat) return alert('Crie ou escolha uma categoria primeiro.');
+      cat.itens.push({ material: '', descricao: '' });
+      marcarAlterado(ARQ_EPIS); renderEpis();
+      const inputs = document.querySelectorAll('#episItens input');
+      inputs[inputs.length - 2]?.focus();
+    }
+    function novaCategoriaEpi() {
+      const d = extras[ARQ_EPIS].dados; if (!d) return;
+      const nome = (prompt('Nome da nova categoria:') || '').trim();
+      if (!nome) return;
+      if (d.categorias.some(c => c.nome === nome)) return alert('Essa categoria já existe.');
+      d.categorias.push({ nome, itens: [] });
+      categoriaEpiAtual = nome;
+      marcarAlterado(ARQ_EPIS); renderEpis();
+    }
+    function renomearCategoriaEpi() {
+      const cat = extras[ARQ_EPIS].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
+      if (!cat) return;
+      const nome = (prompt('Novo nome da categoria:', cat.nome) || '').trim();
+      if (!nome || nome === cat.nome) return;
+      cat.nome = nome; categoriaEpiAtual = nome;
+      marcarAlterado(ARQ_EPIS); renderEpis();
+    }
+    function excluirCategoriaEpi() {
+      const d = extras[ARQ_EPIS].dados;
+      const cat = d?.categorias.find(c => c.nome === categoriaEpiAtual);
+      if (!cat || !confirm(`Excluir a categoria "${cat.nome}" e os ${cat.itens.length} EPI(s) dela?`)) return;
+      d.categorias.splice(d.categorias.indexOf(cat), 1);
+      categoriaEpiAtual = '';
+      marcarAlterado(ARQ_EPIS); renderEpis();
+    }
+
+    // ------------------------ Objetos técnicos ------------------------
+    let maquinaObjAtual = '';
+    let parteObjAtual = '';
+
+    function renderObjetos() {
+      const dados = extras[ARQ_OBJ].dados;
+      if (!dados) return;
+      const aviso = document.getElementById('objAviso');
+      aviso.style.display = extras[ARQ_OBJ].existe ? 'none' : 'block';
+      aviso.textContent = 'objetos_tecnicos.json ainda não existe no repositório: ele será criado ao salvar.';
+      dados.config = dados.config || {};
+      ligarConfig('objTipoNota', dados.config, 'tipo_nota', ARQ_OBJ);
+      ligarConfig('objNomeTipoNota', dados.config, 'nome_tipo_nota', ARQ_OBJ);
+
+      const maqs = (dados.maquinas = dados.maquinas || []);
+      const selM = document.getElementById('objMaquina');
+      maquinaObjAtual = preencherSelect(selM, maqs.map(m => m.nome), maquinaObjAtual);
+      selM.onchange = () => { maquinaObjAtual = selM.value; parteObjAtual = ''; renderObjetos(); };
+      const maq = maqs.find(m => m.nome === maquinaObjAtual);
+
+      const selP = document.getElementById('objParte');
+      const partes = maq ? (maq.partes = maq.partes || []) : [];
+      parteObjAtual = preencherSelect(selP, partes.map(p => p.nome), parteObjAtual);
+      selP.onchange = () => { parteObjAtual = selP.value; renderObjetos(); };
+      const parte = partes.find(p => p.nome === parteObjAtual);
+
+      const filtro = document.getElementById('objFiltro');
+      filtro.oninput = () => desenharObjetosAdmin(parte);
+      const total = maqs.reduce((s, m) => s + (m.partes || []).reduce((t, p) => t + (p.objetos || []).length, 0), 0);
+      document.getElementById('objContagem').textContent = parte
+        ? `${parte.objetos.length} objeto(s) nesta parte · ${total} no total`
+        : (maq ? 'Nenhuma parte nesta máquina. Clique em "+ Nova".' : 'Nenhuma máquina. Clique em "+ Nova".');
+      desenharObjetosAdmin(parte);
+    }
+
+    function desenharObjetosAdmin(parte) {
+      const cont = document.getElementById('objItens');
+      cont.innerHTML = '';
+      if (!parte) return;
+      parte.objetos = parte.objetos || [];
+      const termo = (document.getElementById('objFiltro').value || '').trim().toUpperCase();
+      parte.objetos
+        .filter(o => !termo || `${o.codigo} ${o.descricao} ${o.tipo}`.toUpperCase().includes(termo))
+        .forEach(o => linhaCampos(cont, 'grid-obj', o, [['codigo', 'Código'], ['descricao', 'Descrição'], ['tipo', 'Tipo']],
+          () => { parte.objetos.splice(parte.objetos.indexOf(o), 1); renderObjetos(); }, ARQ_OBJ));
+    }
+
+    const maquinaObj = () => extras[ARQ_OBJ].dados?.maquinas.find(m => m.nome === maquinaObjAtual);
+    const parteObj = () => maquinaObj()?.partes.find(p => p.nome === parteObjAtual);
+
+    function addObjeto() {
+      const parte = parteObj();
+      if (!parte) return alert('Crie ou escolha uma parte do processo primeiro.');
+      document.getElementById('objFiltro').value = '';
+      parte.objetos.push({ codigo: '', descricao: '', tipo: '' });
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+      const inputs = document.querySelectorAll('#objItens input');
+      inputs[inputs.length - 3]?.focus();
+    }
+    function novaMaquinaObj() {
+      const d = extras[ARQ_OBJ].dados; if (!d) return;
+      const nome = (prompt('Nome da nova máquina / área:') || '').trim();
+      if (!nome) return;
+      if (d.maquinas.some(m => m.nome === nome)) return alert('Essa máquina já existe.');
+      d.maquinas.push({ nome, partes: [] });
+      maquinaObjAtual = nome; parteObjAtual = '';
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+    }
+    function renomearMaquinaObj() {
+      const m = maquinaObj(); if (!m) return;
+      const nome = (prompt('Novo nome da máquina / área:', m.nome) || '').trim();
+      if (!nome || nome === m.nome) return;
+      m.nome = nome; maquinaObjAtual = nome;
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+    }
+    function excluirMaquinaObj() {
+      const d = extras[ARQ_OBJ].dados; const m = maquinaObj();
+      if (!m || !confirm(`Excluir a máquina "${m.nome}" com todas as partes e objetos?`)) return;
+      d.maquinas.splice(d.maquinas.indexOf(m), 1);
+      maquinaObjAtual = ''; parteObjAtual = '';
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+    }
+    function novaParteObj() {
+      const m = maquinaObj();
+      if (!m) return alert('Crie ou escolha uma máquina primeiro.');
+      const nome = (prompt('Nome da nova parte do processo:') || '').trim();
+      if (!nome) return;
+      if (m.partes.some(p => p.nome === nome)) return alert('Essa parte já existe nesta máquina.');
+      m.partes.push({ nome, objetos: [] });
+      parteObjAtual = nome;
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+    }
+    function renomearParteObj() {
+      const p = parteObj(); if (!p) return;
+      const nome = (prompt('Novo nome da parte do processo:', p.nome) || '').trim();
+      if (!nome || nome === p.nome) return;
+      p.nome = nome; parteObjAtual = nome;
+      marcarAlterado(ARQ_OBJ); renderObjetos();
+    }
+    function excluirParteObj() {
+      const m = maquinaObj(); const p = parteObj();
+      if (!p || !confirm(`Excluir a parte "${p.nome}" e os ${p.objetos.length} objeto(s) dela?`)) return;
+      m.partes.splice(m.partes.indexOf(p), 1);
+      parteObjAtual = '';
+      marcarAlterado(ARQ_OBJ); renderObjetos();
     }
 
     function addRegra(nome = '', causa = '', mat = '') {
@@ -905,6 +1266,16 @@
         if (!configAtual.ORDEM_DA_VEZ) configAtual.ORDEM_DA_VEZ = {};
         atualizarSelectMaquinas();
         renderOrdemDaVez();
+
+        // Listas de EPI e objetos técnicos (arquivos próprios no repositório).
+        try {
+          await Promise.all([carregarArquivoExtra(ARQ_EPIS, token, owner, repo), carregarArquivoExtra(ARQ_OBJ, token, owner, repo)]);
+          renderEpis();
+          renderObjetos();
+        } catch (errExtras) {
+          console.error(errExtras);
+          alert(`Parâmetros carregados, mas houve erro nas listas de EPI/objetos:\n${errExtras.message}`);
+        }
 
         const sel = document.getElementById("maquina");
         if (sel.options.length > 0) {
@@ -1174,12 +1545,23 @@
           const data = await resp.json();
           currentSha = data.content.sha;
           try { await registrarLogSeparado(owner, repo, token, nomeOperador, maquinaAtual); } catch (logErr) {}
-          showStatus('Salvo com sucesso no GitHub!', 'success');
+
+          // Listas alteradas (EPIs / objetos técnicos) vão em arquivos próprios.
+          const salvos = [];
+          for (const nome of [ARQ_EPIS, ARQ_OBJ]) {
+            if (!extras[nome].alterado) continue;
+            await salvarArquivoExtra(nome, token, owner, repo, nomeOperador);
+            salvos.push(nome);
+            try { await registrarLogSeparado(owner, repo, token, nomeOperador, nome === ARQ_EPIS ? 'Lista de EPIs' : 'Objetos técnicos'); } catch (logErr) {}
+          }
+          renderEpis();
+          renderObjetos();
+          showStatus(`Salvo com sucesso no GitHub!${salvos.length ? ` (também: ${salvos.join(', ')})` : ''}`, 'success');
         } else {
           const errData = await resp.json();
           showStatus(`Erro: ${errData.message || resp.statusText}`, 'error');
         }
-      } catch (e) { showStatus('Erro na requisição ao salvar.', 'error'); }
+      } catch (e) { showStatus(`Erro ao salvar: ${e.message || 'falha na requisição'}`, 'error'); }
     });
 
     function carregarMaquinaUI() {
