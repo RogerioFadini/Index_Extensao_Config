@@ -519,7 +519,7 @@
           <button type="button" class="tab-btn active" id="tabBtnCo11n" onclick="trocarTab('co11n')">⚙️ CO11N / Refugo</button>
           <button type="button" class="tab-btn" id="tabBtnImpressao" onclick="trocarTab('impressao')">🏷️ Etiquetas</button>
           <button type="button" class="tab-btn" id="tabBtnOrdemDaVez" onclick="trocarTab('ordemDaVez')">🔁 Ordem da vez</button>
-          <button type="button" class="tab-btn" id="tabBtnEpis" onclick="trocarTab('epis')">🦺 EPIs</button>
+          <button type="button" class="tab-btn" id="tabBtnEpis" onclick="trocarTab('epis')">📦 Materiais</button>
           <button type="button" class="tab-btn" id="tabBtnObjetos" onclick="trocarTab('objetos')">🔧 Objetos técnicos</button>
           <button type="button" class="tab-btn" id="tabBtnLogs" onclick="trocarTab('logs')">📜 Histórico</button>
         </div>
@@ -622,9 +622,21 @@
 
         <!-- Painel EPIs (epis.json) -->
         <div class="tab-panel" id="tabPanelEpis">
-          <p class="section-title">Solicitação de EPI (epis.json)</p>
+          <p class="section-title">Solicitação de materiais (epis.json e manutencao.json)</p>
           <div class="odv-ajuda">Vale para todas as máquinas (não depende da máquina selecionada acima). Clique em <b>Salvar</b> para aplicar.</div>
+          <div class="field-group">
+            <label>Abas que aparecem no pop-up:</label>
+            <div id="epiAbasAtivas"></div>
+          </div>
+          <div class="field-group">
+            <label>Lista:</label>
+            <select id="epiArquivo" onchange="trocarListaEpi(this.value)">
+              <option value="epis.json">🦺📦 EPIs, uniformes e materiais (epis.json)</option>
+              <option value="manutencao.json">🔧 Itens de manutenção (manutencao.json)</option>
+            </select>
+          </div>
           <div id="episAviso" class="aviso-lista" style="display:none"></div>
+          <div id="epiBlocoConfig">
 
           <div class="field-group">
             <label>Configuração da reserva:</label>
@@ -642,6 +654,7 @@
             <div id="episSetores"></div>
             <button type="button" class="btn-add" onclick="addSetor()">+ Adicionar setor</button>
           </div>
+          </div>
 
           <div class="field-group">
             <label>Categoria:</label>
@@ -650,6 +663,21 @@
               <button type="button" class="btn-add-machine" onclick="novaCategoriaEpi()">+ Nova</button>
               <button type="button" class="btn-add-machine" onclick="renomearCategoriaEpi()">Renomear</button>
               <button type="button" class="btn-delete" onclick="excluirCategoriaEpi()">Excluir</button>
+            </div>
+            <div class="grid-cfg" style="grid-template-columns: 1fr 1fr; margin-top: 10px;">
+              <div>
+                <div class="col-cab">Aba no pop-up</div>
+                <select id="epiAba">
+                  <option value="EPIs e uniformes">🦺 EPIs e uniformes</option>
+                  <option value="Materiais">📦 Materiais</option>
+                  <option value="Manutenção">🔧 Manutenção</option>
+                </select>
+              </div>
+              <div>
+                <div class="col-cab">Grupo (título dentro da aba)</div>
+                <input type="text" id="epiGrupo" list="epiGrupos" placeholder="Ex: EPI, Calçados, Limpeza e copa">
+                <datalist id="epiGrupos"></datalist>
+              </div>
             </div>
             <div class="contagem" id="epiContagem"></div>
             <div class="grid-epi col-cab"><div>Material</div><div>Descrição</div><div></div></div>
@@ -821,6 +849,9 @@
     // ======================================================================
     const ARQ_EPIS = 'epis.json';
     const ARQ_OBJ = 'objetos_tecnicos.json';
+    const ARQ_MANUT = 'manutencao.json';
+    // Lista aberta na aba de materiais: epis.json (EPIs e materiais) ou manutencao.json (itens de manutenção).
+    let arquivoLista = 'epis.json';
     const PADRAO_EPIS = () => ({
       config: { tipo_movimento: '201', centro: 'P205', deposito: 'MRO', max_itens: 15,
                 setores: [{ nome: 'Resinas', centro_custo: 'EI122' }, { nome: 'Recicladoras', centro_custo: 'EI121' }] },
@@ -829,7 +860,8 @@
     const PADRAO_OBJ = () => ({ config: { tipo_nota: 'Z1', nome_tipo_nota: 'Nota de avaria' }, maquinas: [] });
     const extras = {
       [ARQ_EPIS]: { dados: null, sha: null, alterado: false, existe: false },
-      [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false }
+      [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false },
+      [ARQ_MANUT]: { dados: null, sha: null, alterado: false, existe: false }
     };
     const marcarAlterado = nome => { extras[nome].alterado = true; showStatus('Alteração pendente: clique em Salvar para aplicar.', ''); };
 
@@ -841,7 +873,8 @@
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
       });
       if (resp.status === 404) {
-        extras[nome] = { dados: nome === ARQ_EPIS ? PADRAO_EPIS() : PADRAO_OBJ(), sha: null, alterado: false, existe: false };
+        const padrao = nome === ARQ_EPIS ? PADRAO_EPIS() : nome === ARQ_MANUT ? { categorias: [] } : PADRAO_OBJ();
+        extras[nome] = { dados: padrao, sha: null, alterado: false, existe: false };
         return;
       }
       if (!resp.ok) throw new Error(`Erro ${resp.status} ao carregar ${nome}`);
@@ -913,18 +946,47 @@
     let categoriaEpiAtual = '';
 
     function renderEpis() {
-      const dados = extras[ARQ_EPIS].dados;
-      if (!dados) return;
+      const dados = extras[arquivoLista].dados;
+      const dadosEpis = extras[ARQ_EPIS].dados;
+      if (!dados || !dadosEpis) return;
+      document.getElementById('epiArquivo').value = arquivoLista;
+      document.getElementById('epiBlocoConfig').style.display = arquivoLista === ARQ_EPIS ? 'block' : 'none';
       const aviso = document.getElementById('episAviso');
-      aviso.style.display = extras[ARQ_EPIS].existe ? 'none' : 'block';
-      aviso.textContent = 'epis.json ainda não existe no repositório: ele será criado ao salvar.';
-      dados.config = dados.config || {};
-      ligarConfig('epiTipoMov', dados.config, 'tipo_movimento', ARQ_EPIS);
-      ligarConfig('epiCentro', dados.config, 'centro', ARQ_EPIS);
-      ligarConfig('epiDeposito', dados.config, 'deposito', ARQ_EPIS);
-      ligarConfig('epiMaxItens', dados.config, 'max_itens', ARQ_EPIS, true);
+      aviso.style.display = extras[arquivoLista].existe ? 'none' : 'block';
+      aviso.textContent = `${arquivoLista} ainda não existe no repositório: ele será criado ao salvar.`;
+      dadosEpis.config = dadosEpis.config || {};
+      const cfgEpis = dadosEpis.config;
+      ligarConfig('epiTipoMov', cfgEpis, 'tipo_movimento', ARQ_EPIS);
+      ligarConfig('epiCentro', cfgEpis, 'centro', ARQ_EPIS);
+      ligarConfig('epiDeposito', cfgEpis, 'deposito', ARQ_EPIS);
+      ligarConfig('epiMaxItens', cfgEpis, 'max_itens', ARQ_EPIS, true);
 
-      const setores = (dados.config.setores = dados.config.setores || []);
+      // Liga/desliga cada aba do pop-up (config.abas_ativas no epis.json; aba sem valor = ligada).
+      const abasAtivas = (cfgEpis.abas_ativas = cfgEpis.abas_ativas || {});
+      const contAbas = document.getElementById('epiAbasAtivas');
+      contAbas.innerHTML = '';
+      [['EPIs e uniformes', '🦺'], ['Materiais', '📦'], ['Manutenção', '🔧']].forEach(([aba, emoji]) => {
+        const ligada = abasAtivas[aba] !== false;
+        const item = document.createElement('div');
+        item.className = ligada ? 'odv-linha ligada' : 'odv-linha';
+        item.innerHTML = `
+          <div>
+            <div class="odv-nome">${emoji} ${aba}</div>
+            <div class="odv-modo">${ligada ? 'Aparece no pop-up e na busca' : 'Escondida: não aparece no pop-up nem na busca'}</div>
+          </div>
+          <label class="switch" title="Mostrar esta aba no pop-up">
+            <input type="checkbox"${ligada ? ' checked' : ''}>
+            <span class="trilho"></span>
+          </label>`;
+        item.querySelector('input').addEventListener('change', e => {
+          abasAtivas[aba] = e.target.checked;
+          marcarAlterado(ARQ_EPIS);
+          renderEpis();
+        });
+        contAbas.appendChild(item);
+      });
+
+      const setores = (cfgEpis.setores = cfgEpis.setores || []);
       const contSet = document.getElementById('episSetores');
       contSet.innerHTML = '';
       setores.forEach((st, i) => linhaCampos(contSet, 'grid-setor', st, [['nome', 'Setor'], ['centro_custo', 'Centro de custo']],
@@ -935,6 +997,17 @@
       categoriaEpiAtual = preencherSelect(sel, cats.map(c => c.nome), categoriaEpiAtual);
       sel.onchange = () => { categoriaEpiAtual = sel.value; renderEpis(); };
       const cat = cats.find(c => c.nome === categoriaEpiAtual);
+      const selAba = document.getElementById('epiAba');
+      const inGrupo = document.getElementById('epiGrupo');
+      document.getElementById('epiGrupos').innerHTML = [...new Set(cats.map(c => c.grupo).filter(Boolean))]
+        .map(g => `<option value="${g.replace(/"/g, '&quot;')}"></option>`).join('');
+      selAba.disabled = inGrupo.disabled = !cat;
+      if (cat) {
+        selAba.value = cat.aba || 'Materiais';
+        inGrupo.value = cat.grupo || '';
+        selAba.onchange = () => { cat.aba = selAba.value; marcarAlterado(arquivoLista); };
+        inGrupo.oninput = () => { cat.grupo = inGrupo.value.trim(); marcarAlterado(arquivoLista); };
+      }
       const cont = document.getElementById('episItens');
       cont.innerHTML = '';
       const total = cats.reduce((s, c) => s + (c.itens || []).length, 0);
@@ -944,7 +1017,13 @@
       if (!cat) return;
       cat.itens = cat.itens || [];
       cat.itens.forEach(item => linhaCampos(cont, 'grid-epi', item, [['material', 'Material'], ['descricao', 'Descrição']],
-        () => { cat.itens.splice(cat.itens.indexOf(item), 1); renderEpis(); }, ARQ_EPIS));
+        () => { cat.itens.splice(cat.itens.indexOf(item), 1); renderEpis(); }, arquivoLista));
+    }
+
+    function trocarListaEpi(arquivo) {
+      arquivoLista = arquivo;
+      categoriaEpiAtual = '';
+      renderEpis();
     }
 
     function addSetor() {
@@ -953,37 +1032,39 @@
       marcarAlterado(ARQ_EPIS); renderEpis();
     }
     function addEpi() {
-      const cat = extras[ARQ_EPIS].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
+      const cat = extras[arquivoLista].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
       if (!cat) return alert('Crie ou escolha uma categoria primeiro.');
       cat.itens.push({ material: '', descricao: '' });
-      marcarAlterado(ARQ_EPIS); renderEpis();
+      marcarAlterado(arquivoLista); renderEpis();
       const inputs = document.querySelectorAll('#episItens input');
       inputs[inputs.length - 2]?.focus();
     }
     function novaCategoriaEpi() {
-      const d = extras[ARQ_EPIS].dados; if (!d) return;
+      const d = extras[arquivoLista].dados; if (!d) return;
       const nome = (prompt('Nome da nova categoria:') || '').trim();
       if (!nome) return;
       if (d.categorias.some(c => c.nome === nome)) return alert('Essa categoria já existe.');
-      d.categorias.push({ nome, itens: [] });
+      const base = d.categorias.find(c => c.nome === categoriaEpiAtual) || {};
+      const abaPadrao = arquivoLista === ARQ_MANUT ? 'Manutenção' : 'Materiais';
+      d.categorias.push({ aba: base.aba || abaPadrao, grupo: base.grupo || '', nome, itens: [] });
       categoriaEpiAtual = nome;
-      marcarAlterado(ARQ_EPIS); renderEpis();
+      marcarAlterado(arquivoLista); renderEpis();
     }
     function renomearCategoriaEpi() {
-      const cat = extras[ARQ_EPIS].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
+      const cat = extras[arquivoLista].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
       if (!cat) return;
       const nome = (prompt('Novo nome da categoria:', cat.nome) || '').trim();
       if (!nome || nome === cat.nome) return;
       cat.nome = nome; categoriaEpiAtual = nome;
-      marcarAlterado(ARQ_EPIS); renderEpis();
+      marcarAlterado(arquivoLista); renderEpis();
     }
     function excluirCategoriaEpi() {
-      const d = extras[ARQ_EPIS].dados;
+      const d = extras[arquivoLista].dados;
       const cat = d?.categorias.find(c => c.nome === categoriaEpiAtual);
       if (!cat || !confirm(`Excluir a categoria "${cat.nome}" e os ${cat.itens.length} EPI(s) dela?`)) return;
       d.categorias.splice(d.categorias.indexOf(cat), 1);
       categoriaEpiAtual = '';
-      marcarAlterado(ARQ_EPIS); renderEpis();
+      marcarAlterado(arquivoLista); renderEpis();
     }
 
     // ------------------------ Objetos técnicos ------------------------
@@ -1269,7 +1350,7 @@
 
         // Listas de EPI e objetos técnicos (arquivos próprios no repositório).
         try {
-          await Promise.all([carregarArquivoExtra(ARQ_EPIS, token, owner, repo), carregarArquivoExtra(ARQ_OBJ, token, owner, repo)]);
+          await Promise.all([ARQ_EPIS, ARQ_MANUT, ARQ_OBJ].map(nome => carregarArquivoExtra(nome, token, owner, repo)));
           renderEpis();
           renderObjetos();
         } catch (errExtras) {
@@ -1548,11 +1629,11 @@
 
           // Listas alteradas (EPIs / objetos técnicos) vão em arquivos próprios.
           const salvos = [];
-          for (const nome of [ARQ_EPIS, ARQ_OBJ]) {
+          for (const nome of [ARQ_EPIS, ARQ_MANUT, ARQ_OBJ]) {
             if (!extras[nome].alterado) continue;
             await salvarArquivoExtra(nome, token, owner, repo, nomeOperador);
             salvos.push(nome);
-            try { await registrarLogSeparado(owner, repo, token, nomeOperador, nome === ARQ_EPIS ? 'Lista de EPIs' : 'Objetos técnicos'); } catch (logErr) {}
+            try { await registrarLogSeparado(owner, repo, token, nomeOperador, { [ARQ_EPIS]: 'Lista de EPIs e materiais', [ARQ_MANUT]: 'Itens de manutenção', [ARQ_OBJ]: 'Objetos técnicos' }[nome]); } catch (logErr) {}
           }
           renderEpis();
           renderObjetos();
