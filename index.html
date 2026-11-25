@@ -755,10 +755,12 @@
           <div id="objAviso" class="aviso-lista" style="display:none"></div>
 
           <div class="field-group">
-            <label>Tipo de nota:</label>
+            <label>Tipo de nota (o pop-up pergunta primeiro se é Corretiva ou Melhoria):</label>
             <div class="grid-cfg" style="grid-template-columns: 1fr 2fr;">
-              <div><div class="col-cab">Código</div><input type="text" id="objTipoNota"></div>
-              <div><div class="col-cab">Nome que aparece no SAP</div><input type="text" id="objNomeTipoNota"></div>
+              <div><div class="col-cab">Corretiva · código</div><input type="text" id="objTipoNota"></div>
+              <div><div class="col-cab">Corretiva · nome que aparece no SAP</div><input type="text" id="objNomeTipoNota"></div>
+              <div><div class="col-cab">Melhoria · código</div><input type="text" id="objTipoNotaMelhoria"></div>
+              <div><div class="col-cab">Melhoria · nome que aparece no SAP</div><input type="text" id="objNomeTipoNotaMelhoria"></div>
             </div>
           </div>
 
@@ -918,7 +920,7 @@
       excluir: { regras: [], materiais: [] },
       categorias: [{ aba: 'Manutenção', grupo: 'Diversos', nome: 'Diversos', regras: [], materiais: [] }]
     });
-    const PADRAO_OBJ = () => ({ config: { tipo_nota: 'Z1', nome_tipo_nota: 'Nota de avaria' }, maquinas: [] });
+    const PADRAO_OBJ = () => ({ config: { tipo_nota: 'Z1', nome_tipo_nota: 'Nota de avaria', tipo_nota_melhoria: 'Z5', nome_tipo_nota_melhoria: 'Melhoria' }, maquinas: [] });
     const extras = {
       [ARQ_MAT]: { dados: null, sha: null, alterado: false, existe: false },
       [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false }
@@ -1275,6 +1277,8 @@
       dados.config = dados.config || {};
       ligarConfig('objTipoNota', dados.config, 'tipo_nota', ARQ_OBJ);
       ligarConfig('objNomeTipoNota', dados.config, 'nome_tipo_nota', ARQ_OBJ);
+      ligarConfig('objTipoNotaMelhoria', dados.config, 'tipo_nota_melhoria', ARQ_OBJ);
+      ligarConfig('objNomeTipoNotaMelhoria', dados.config, 'nome_tipo_nota_melhoria', ARQ_OBJ);
 
       const maqs = (dados.maquinas = dados.maquinas || []);
       const selM = document.getElementById('objMaquina');
