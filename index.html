@@ -468,6 +468,18 @@
     .seletor-linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .seletor-linha select { flex: 1; min-width: 200px; }
     .contagem { font-size: 12px; color: var(--text-dim); margin: 6px 0 10px; }
+    .regras-txt { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--field-bg); color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.5; resize: vertical; }
+    .regras-txt:focus { outline: none; border-color: var(--accent); background: var(--field-focus); }
+    .regras-txt:disabled { opacity: .5; }
+    .odv-ajuda code, .contagem code { font-family: var(--mono); background: var(--field-bg); border: 1px solid var(--border-soft); border-radius: 4px; padding: 0 4px; color: var(--text); }
+    .teste-regras input[type="file"] { margin: 8px 0; color: var(--text-dim); font-size: 12.5px; }
+    .teste-regras details { margin-top: 8px; background: var(--panel-alt); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 12px; }
+    .teste-regras summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--text); }
+    .tabela-teste { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    .tabela-teste td { padding: 3px 6px; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); }
+    .tabela-teste td:first-child { font-family: var(--mono); white-space: nowrap; }
+    .tabela-teste td.motivo { font-family: var(--mono); color: var(--accent2); white-space: nowrap; }
     .aviso-lista { font-size: 12.5px; color: var(--ambar); margin-bottom: 12px; }
   </style>
 </head>
@@ -620,23 +632,19 @@
           <div id="ordemDaVezLista" class="odv-lista"></div>
         </div>
 
-        <!-- Painel EPIs (epis.json) -->
+        <!-- Painel Materiais (materiais.json): regras que distribuem o estoque do SAP nas categorias -->
         <div class="tab-panel" id="tabPanelEpis">
-          <p class="section-title">Solicitação de materiais (epis.json e manutencao.json)</p>
-          <div class="odv-ajuda">Vale para todas as máquinas (não depende da máquina selecionada acima). Clique em <b>Salvar</b> para aplicar.</div>
+          <p class="section-title">Solicitação de materiais (materiais.json)</p>
+          <div class="odv-ajuda">
+            Os <b>itens</b> vêm do estoque do SAP (depósito abaixo), consultado toda vez que o pop-up abre: item novo no SAP aparece sozinho.
+            Aqui ficam só as <b>regras</b> que dizem em que categoria cada item cai. Vale para todas as máquinas. Clique em <b>Salvar</b> para aplicar.
+          </div>
+          <div id="episAviso" class="aviso-lista" style="display:none"></div>
+
           <div class="field-group">
             <label>Abas que aparecem no pop-up:</label>
             <div id="epiAbasAtivas"></div>
           </div>
-          <div class="field-group">
-            <label>Lista:</label>
-            <select id="epiArquivo" onchange="trocarListaEpi(this.value)">
-              <option value="epis.json">🦺📦 EPIs, uniformes e materiais (epis.json)</option>
-              <option value="manutencao.json">🔧 Itens de manutenção (manutencao.json)</option>
-            </select>
-          </div>
-          <div id="episAviso" class="aviso-lista" style="display:none"></div>
-          <div id="epiBlocoConfig">
 
           <div class="field-group">
             <label>Configuração da reserva:</label>
@@ -654,6 +662,26 @@
             <div id="episSetores"></div>
             <button type="button" class="btn-add" onclick="addSetor()">+ Adicionar setor</button>
           </div>
+
+          <div class="field-group">
+            <label>Itens sem saldo e sem regra:</label>
+            <div class="grid-cfg" style="grid-template-columns: 1fr 1fr;">
+              <div id="epiSemSaldo"></div>
+              <div>
+                <div class="col-cab">Categoria de quem não bate em nenhuma regra</div>
+                <select id="epiCatPadrao"></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="odv-ajuda">
+            <b>Como escrever uma regra</b> (uma por linha):<br>
+            <code>CALCA PRODUCAO</code> &nbsp;descrição <b>começa</b> com essas palavras &nbsp;·&nbsp;
+            <code>PARAF*</code> &nbsp;começo de palavra (PARAF, PARAFUSO...)<br>
+            <code>+NR10</code> &nbsp;<b>contém</b> a palavra em qualquer lugar &nbsp;·&nbsp;
+            <code>-FEM</code> &nbsp;<b>não</b> pode conter. Ex.: <code>CAMISA +BRIG*</code> = começa com CAMISA e tem BRIG/BRIGADA.<br>
+            Se mais de uma regra servir, vence a <b>mais específica</b> (mais palavras; "+" vale mais). <b>Código fixo</b> vence qualquer regra.
+            Acentos e maiúsculas não importam.
           </div>
 
           <div class="field-group">
@@ -675,14 +703,48 @@
               </div>
               <div>
                 <div class="col-cab">Grupo (título dentro da aba)</div>
-                <input type="text" id="epiGrupo" list="epiGrupos" placeholder="Ex: EPI, Calçados, Limpeza e copa">
+                <input type="text" id="epiGrupo" list="epiGrupos" placeholder="Ex: EPI, Calçados, Mecânica">
                 <datalist id="epiGrupos"></datalist>
               </div>
             </div>
-            <div class="contagem" id="epiContagem"></div>
-            <div class="grid-epi col-cab"><div>Material</div><div>Descrição</div><div></div></div>
-            <div id="episItens"></div>
-            <button type="button" class="btn-add" onclick="addEpi()">+ Adicionar EPI nesta categoria</button>
+            <div class="grid-cfg" style="grid-template-columns: 2fr 1fr; margin-top: 10px;">
+              <div>
+                <div class="col-cab">Regras desta categoria (<span id="epiQtdRegras">0</span>)</div>
+                <textarea id="epiRegras" class="regras-txt" rows="10" spellcheck="false" placeholder="LUVA NITRILICA&#10;LUVA +QUIMICA"></textarea>
+              </div>
+              <div>
+                <div class="col-cab">Códigos fixos (um por linha)</div>
+                <textarea id="epiFixos" class="regras-txt" rows="10" spellcheck="false" placeholder="60016132"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>🚫 Nunca mostrar (exclusões):</label>
+            <div class="grid-cfg" style="grid-template-columns: 2fr 1fr;">
+              <div>
+                <div class="col-cab">Regras de exclusão</div>
+                <textarea id="epiExclRegras" class="regras-txt" rows="4" spellcheck="false" placeholder="ENERGIA ELETRICA&#10;OLEO DIESEL"></textarea>
+              </div>
+              <div>
+                <div class="col-cab">Códigos excluídos</div>
+                <textarea id="epiExclFixos" class="regras-txt" rows="4" spellcheck="false"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group teste-regras">
+            <label>🧪 Testar as regras:</label>
+            <div class="seletor-linha">
+              <input type="text" id="epiTesteDesc" placeholder="Digite uma descrição, ex.: CALCA NR.42 TECHNO RIP STOP A94 FEM">
+            </div>
+            <div class="contagem" id="epiTesteRes"></div>
+            <div class="odv-ajuda" style="margin-top:8px">
+              Para ver a distribuição real, carregue o arquivo de estoque baixado do SAP (o JSON do script de estoque).
+              O arquivo fica só neste navegador, não vai para o GitHub.
+            </div>
+            <input type="file" id="epiArqEstoque" accept=".json,application/json">
+            <div id="epiResumoTeste"></div>
           </div>
         </div>
 
@@ -845,23 +907,21 @@
     }
 
     // ======================================================================
-    // Arquivos extras do repositório: epis.json e objetos_tecnicos.json
+    // Arquivos extras do repositório: materiais.json (regras de materiais) e objetos_tecnicos.json
     // ======================================================================
-    const ARQ_EPIS = 'epis.json';
+    const ARQ_MAT = 'materiais.json';
     const ARQ_OBJ = 'objetos_tecnicos.json';
-    const ARQ_MANUT = 'manutencao.json';
-    // Lista aberta na aba de materiais: epis.json (EPIs e materiais) ou manutencao.json (itens de manutenção).
-    let arquivoLista = 'epis.json';
-    const PADRAO_EPIS = () => ({
-      config: { tipo_movimento: '201', centro: 'P205', deposito: 'MRO', max_itens: 15,
-                setores: [{ nome: 'Resinas', centro_custo: 'EI122' }, { nome: 'Recicladoras', centro_custo: 'EI121' }] },
-      categorias: []
+    const PADRAO_MAT = () => ({
+      versao: 2,
+      config: { tipo_movimento: '201', centro: 'P205', deposito: 'MRO', max_itens: 15, mostrar_sem_estoque: false, categoria_padrao: 'Diversos',
+                setores: [{ nome: 'Resinas', centro_custo: 'EI122' }, { nome: 'Recicladoras', centro_custo: 'EI121' }, { nome: 'Manutenção', centro_custo: 'EI286' }] },
+      excluir: { regras: [], materiais: [] },
+      categorias: [{ aba: 'Manutenção', grupo: 'Diversos', nome: 'Diversos', regras: [], materiais: [] }]
     });
     const PADRAO_OBJ = () => ({ config: { tipo_nota: 'Z1', nome_tipo_nota: 'Nota de avaria' }, maquinas: [] });
     const extras = {
-      [ARQ_EPIS]: { dados: null, sha: null, alterado: false, existe: false },
-      [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false },
-      [ARQ_MANUT]: { dados: null, sha: null, alterado: false, existe: false }
+      [ARQ_MAT]: { dados: null, sha: null, alterado: false, existe: false },
+      [ARQ_OBJ]: { dados: null, sha: null, alterado: false, existe: false }
     };
     const marcarAlterado = nome => { extras[nome].alterado = true; showStatus('Alteração pendente: clique em Salvar para aplicar.', ''); };
 
@@ -873,7 +933,7 @@
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }, cache: 'no-store'
       });
       if (resp.status === 404) {
-        const padrao = nome === ARQ_EPIS ? PADRAO_EPIS() : nome === ARQ_MANUT ? { categorias: [] } : PADRAO_OBJ();
+        const padrao = nome === ARQ_MAT ? PADRAO_MAT() : PADRAO_OBJ();
         extras[nome] = { dados: padrao, sha: null, alterado: false, existe: false };
         return;
       }
@@ -942,129 +1002,264 @@
       el.oninput = () => { obj[chave] = numero ? (parseInt(el.value, 10) || 0) : el.value.trim(); marcarAlterado(arquivo); };
     }
 
-    // ---------------------------- EPIs ----------------------------
+    // ---------------------------- Materiais (regras) ----------------------------
+    // Classificador: MESMO código do content-epi.js (extensão), para o teste aqui bater com o pop-up.
+    function criarClassificador(cfg) {
+      const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+      const palavras = t => norm(t).split(/[^A-Z0-9]+/).filter(Boolean);
+      const casa = (termo, palavra) => (termo.endsWith('*') ? palavra.startsWith(termo.slice(0, -1)) : palavra === termo);
+      const chaveMat = c => String(c || '').trim().replace(/^0+(?=\d)/, '').toUpperCase();
+      const compilar = texto => {
+        const r = { inicio: [], contem: [], sem: [], texto };
+        for (const bruto of String(texto || '').trim().split(/\s+/).filter(Boolean)) {
+          const sinal = bruto[0] === '+' || bruto[0] === '-' ? bruto[0] : '';
+          const corpo = norm(sinal ? bruto.slice(1) : bruto);
+          const estrela = corpo.endsWith('*');
+          const ps = corpo.replace(/\*$/, '').split(/[^A-Z0-9]+/).filter(Boolean);
+          if (!ps.length) continue;
+          if (estrela) ps[ps.length - 1] += '*';
+          if (sinal === '+') r.contem.push(ps); else if (sinal === '-') r.sem.push(ps); else r.inicio.push(...ps);
+        }
+        r.peso = r.inicio.length + 1.5 * r.contem.length;
+        return r.inicio.length || r.contem.length ? r : null;
+      };
+      const temSeq = (ws, seq) => ws.some((_, i) => seq.every((t, j) => ws[i + j] !== undefined && casa(t, ws[i + j])));
+      const bate = (r, ws) => r.inicio.every((t, i) => ws[i] !== undefined && casa(t, ws[i]))
+        && r.contem.every(seq => temSeq(ws, seq)) && !r.sem.some(seq => temSeq(ws, seq));
+
+      const cats = (cfg.categorias || []).filter(c => c.nome);
+      const regras = [];
+      const fixo = new Map();
+      cats.forEach((c, ordem) => {
+        (c.regras || []).forEach(t => { const r = compilar(t); if (r) regras.push({ ...r, cat: c, ordem }); });
+        (c.materiais || []).forEach(mt => { if (!fixo.has(chaveMat(mt))) fixo.set(chaveMat(mt), c); });
+      });
+      const excl = ((cfg.excluir && cfg.excluir.regras) || []).map(compilar).filter(Boolean);
+      const exclMat = new Set(((cfg.excluir && cfg.excluir.materiais) || []).map(chaveMat));
+      const padrao = cats.find(c => c.nome === (cfg.config && cfg.config.categoria_padrao)) || null;
+
+      return function classificar(material, descricao) {
+        const k = chaveMat(material);
+        if (fixo.has(k)) return { cat: fixo.get(k), motivo: 'código' };
+        if (exclMat.has(k)) return { cat: null, motivo: 'excluído (código)' };
+        const ws = palavras(descricao);
+        const ex = excl.find(r => bate(r, ws));
+        if (ex) return { cat: null, motivo: `excluído (${ex.texto})` };
+        let melhor = null;
+        for (const r of regras) {
+          if (!bate(r, ws)) continue;
+          if (!melhor || r.peso > melhor.peso || (r.peso === melhor.peso && r.ordem < melhor.ordem)) melhor = r;
+        }
+        if (melhor) return { cat: melhor.cat, motivo: melhor.texto };
+        return { cat: padrao, motivo: 'sem regra' };
+      };
+    }
+
     let categoriaEpiAtual = '';
+    let estoqueTeste = null;        // Map material -> { nome, qtd, un } (arquivo de estoque carregado só para testar)
+    const linhasDe = txt => String(txt || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const escAdm = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function interruptor(container, titulo, desc, ligado, aoMudar) {
+      const item = document.createElement('div');
+      item.className = ligado ? 'odv-linha ligada' : 'odv-linha';
+      item.innerHTML = `
+        <div><div class="odv-nome"></div><div class="odv-modo"></div></div>
+        <label class="switch"><input type="checkbox"${ligado ? ' checked' : ''}><span class="trilho"></span></label>`;
+      item.querySelector('.odv-nome').textContent = titulo;
+      item.querySelector('.odv-modo').textContent = desc;
+      item.querySelector('input').addEventListener('change', ev => aoMudar(ev.target.checked));
+      container.appendChild(item);
+    }
 
     function renderEpis() {
-      const dados = extras[arquivoLista].dados;
-      const dadosEpis = extras[ARQ_EPIS].dados;
-      if (!dados || !dadosEpis) return;
-      document.getElementById('epiArquivo').value = arquivoLista;
-      document.getElementById('epiBlocoConfig').style.display = arquivoLista === ARQ_EPIS ? 'block' : 'none';
+      const dados = extras[ARQ_MAT].dados;
+      if (!dados) return;
       const aviso = document.getElementById('episAviso');
-      aviso.style.display = extras[arquivoLista].existe ? 'none' : 'block';
-      aviso.textContent = `${arquivoLista} ainda não existe no repositório: ele será criado ao salvar.`;
-      dadosEpis.config = dadosEpis.config || {};
-      const cfgEpis = dadosEpis.config;
-      ligarConfig('epiTipoMov', cfgEpis, 'tipo_movimento', ARQ_EPIS);
-      ligarConfig('epiCentro', cfgEpis, 'centro', ARQ_EPIS);
-      ligarConfig('epiDeposito', cfgEpis, 'deposito', ARQ_EPIS);
-      ligarConfig('epiMaxItens', cfgEpis, 'max_itens', ARQ_EPIS, true);
+      aviso.style.display = extras[ARQ_MAT].existe ? 'none' : 'block';
+      aviso.textContent = `${ARQ_MAT} ainda não existe no repositório: ele será criado ao salvar.`;
+      const cfg = (dados.config = dados.config || {});
+      dados.categorias = dados.categorias || [];
+      dados.excluir = dados.excluir || { regras: [], materiais: [] };
+      ligarConfig('epiTipoMov', cfg, 'tipo_movimento', ARQ_MAT);
+      ligarConfig('epiCentro', cfg, 'centro', ARQ_MAT);
+      ligarConfig('epiDeposito', cfg, 'deposito', ARQ_MAT);
+      ligarConfig('epiMaxItens', cfg, 'max_itens', ARQ_MAT, true);
 
-      // Liga/desliga cada aba do pop-up (config.abas_ativas no epis.json; aba sem valor = ligada).
-      const abasAtivas = (cfgEpis.abas_ativas = cfgEpis.abas_ativas || {});
+      // Abas ligadas/desligadas (config.abas_ativas; aba sem valor = ligada)
+      const abasAtivas = (cfg.abas_ativas = cfg.abas_ativas || {});
       const contAbas = document.getElementById('epiAbasAtivas');
       contAbas.innerHTML = '';
       [['EPIs e uniformes', '🦺'], ['Materiais', '📦'], ['Manutenção', '🔧']].forEach(([aba, emoji]) => {
         const ligada = abasAtivas[aba] !== false;
-        const item = document.createElement('div');
-        item.className = ligada ? 'odv-linha ligada' : 'odv-linha';
-        item.innerHTML = `
-          <div>
-            <div class="odv-nome">${emoji} ${aba}</div>
-            <div class="odv-modo">${ligada ? 'Aparece no pop-up e na busca' : 'Escondida: não aparece no pop-up nem na busca'}</div>
-          </div>
-          <label class="switch" title="Mostrar esta aba no pop-up">
-            <input type="checkbox"${ligada ? ' checked' : ''}>
-            <span class="trilho"></span>
-          </label>`;
-        item.querySelector('input').addEventListener('change', e => {
-          abasAtivas[aba] = e.target.checked;
-          marcarAlterado(ARQ_EPIS);
-          renderEpis();
-        });
-        contAbas.appendChild(item);
+        interruptor(contAbas, `${emoji} ${aba}`, ligada ? 'Aparece no pop-up e na busca' : 'Escondida: não aparece no pop-up nem na busca', ligada,
+          v => { abasAtivas[aba] = v; marcarAlterado(ARQ_MAT); renderEpis(); });
       });
 
-      const setores = (cfgEpis.setores = cfgEpis.setores || []);
+      const setores = (cfg.setores = cfg.setores || []);
       const contSet = document.getElementById('episSetores');
       contSet.innerHTML = '';
-      setores.forEach((st, i) => linhaCampos(contSet, 'grid-setor', st, [['nome', 'Setor'], ['centro_custo', 'Centro de custo']],
-        () => { setores.splice(setores.indexOf(st), 1); renderEpis(); }, ARQ_EPIS));
+      setores.forEach(st => linhaCampos(contSet, 'grid-setor', st, [['nome', 'Setor'], ['centro_custo', 'Centro de custo']],
+        () => { setores.splice(setores.indexOf(st), 1); renderEpis(); }, ARQ_MAT));
 
-      const cats = (dados.categorias = dados.categorias || []);
+      const semSaldo = document.getElementById('epiSemSaldo');
+      semSaldo.innerHTML = '';
+      interruptor(semSaldo, 'Mostrar itens sem saldo', cfg.mostrar_sem_estoque ? 'Aparecem com "sem estoque"' : 'Só aparecem itens com saldo no depósito',
+        cfg.mostrar_sem_estoque === true, v => { cfg.mostrar_sem_estoque = v; marcarAlterado(ARQ_MAT); renderEpis(); });
+
+      const cats = dados.categorias;
+      const selPadrao = document.getElementById('epiCatPadrao');
+      cfg.categoria_padrao = preencherSelect(selPadrao, cats.map(c => c.nome), cfg.categoria_padrao || '');
+      selPadrao.onchange = () => { cfg.categoria_padrao = selPadrao.value; marcarAlterado(ARQ_MAT); atualizarTeste(); };
+
       const sel = document.getElementById('epiCategoria');
-      categoriaEpiAtual = preencherSelect(sel, cats.map(c => c.nome), categoriaEpiAtual);
+      categoriaEpiAtual = preencherSelect(sel, cats.map(c => `${c.nome}`), categoriaEpiAtual);
+      [...sel.options].forEach(o => { const c = cats.find(x => x.nome === o.value); if (c) o.textContent = `${{ 'EPIs e uniformes': '🦺', 'Manutenção': '🔧' }[c.aba] || '📦'} ${c.nome}`; });
       sel.onchange = () => { categoriaEpiAtual = sel.value; renderEpis(); };
       const cat = cats.find(c => c.nome === categoriaEpiAtual);
       const selAba = document.getElementById('epiAba');
       const inGrupo = document.getElementById('epiGrupo');
+      const txtRegras = document.getElementById('epiRegras');
+      const txtFixos = document.getElementById('epiFixos');
       document.getElementById('epiGrupos').innerHTML = [...new Set(cats.map(c => c.grupo).filter(Boolean))]
-        .map(g => `<option value="${g.replace(/"/g, '&quot;')}"></option>`).join('');
-      selAba.disabled = inGrupo.disabled = !cat;
+        .map(g => `<option value="${escAdm(g)}"></option>`).join('');
+      selAba.disabled = inGrupo.disabled = txtRegras.disabled = txtFixos.disabled = !cat;
       if (cat) {
+        cat.regras = cat.regras || [];
+        cat.materiais = cat.materiais || [];
         selAba.value = cat.aba || 'Materiais';
         inGrupo.value = cat.grupo || '';
-        selAba.onchange = () => { cat.aba = selAba.value; marcarAlterado(arquivoLista); };
-        inGrupo.oninput = () => { cat.grupo = inGrupo.value.trim(); marcarAlterado(arquivoLista); };
+        txtRegras.value = cat.regras.join('\n');
+        txtFixos.value = cat.materiais.join('\n');
+        document.getElementById('epiQtdRegras').textContent = cat.regras.length;
+        selAba.onchange = () => { cat.aba = selAba.value; marcarAlterado(ARQ_MAT); };
+        inGrupo.oninput = () => { cat.grupo = inGrupo.value.trim(); marcarAlterado(ARQ_MAT); };
+        txtRegras.oninput = () => {
+          cat.regras = linhasDe(txtRegras.value);
+          document.getElementById('epiQtdRegras').textContent = cat.regras.length;
+          marcarAlterado(ARQ_MAT); atualizarTesteDepois();
+        };
+        txtFixos.oninput = () => { cat.materiais = linhasDe(txtFixos.value); marcarAlterado(ARQ_MAT); atualizarTesteDepois(); };
+      } else {
+        txtRegras.value = txtFixos.value = '';
       }
-      const cont = document.getElementById('episItens');
-      cont.innerHTML = '';
-      const total = cats.reduce((s, c) => s + (c.itens || []).length, 0);
-      document.getElementById('epiContagem').textContent = cat
-        ? `${cat.itens.length} EPI(s) nesta categoria · ${total} no total · ${cats.length} categoria(s)`
-        : 'Nenhuma categoria. Clique em "+ Nova".';
-      if (!cat) return;
-      cat.itens = cat.itens || [];
-      cat.itens.forEach(item => linhaCampos(cont, 'grid-epi', item, [['material', 'Material'], ['descricao', 'Descrição']],
-        () => { cat.itens.splice(cat.itens.indexOf(item), 1); renderEpis(); }, arquivoLista));
+
+      const exR = document.getElementById('epiExclRegras');
+      const exM = document.getElementById('epiExclFixos');
+      exR.value = (dados.excluir.regras || []).join('\n');
+      exM.value = (dados.excluir.materiais || []).join('\n');
+      exR.oninput = () => { dados.excluir.regras = linhasDe(exR.value); marcarAlterado(ARQ_MAT); atualizarTesteDepois(); };
+      exM.oninput = () => { dados.excluir.materiais = linhasDe(exM.value); marcarAlterado(ARQ_MAT); atualizarTesteDepois(); };
+
+      document.getElementById('epiTesteDesc').oninput = testarDescricao;
+      document.getElementById('epiArqEstoque').onchange = carregarEstoqueTeste;
+      atualizarTeste();
     }
 
-    function trocarListaEpi(arquivo) {
-      arquivoLista = arquivo;
-      categoriaEpiAtual = '';
-      renderEpis();
+    function testarDescricao() {
+      const desc = document.getElementById('epiTesteDesc').value.trim();
+      const res = document.getElementById('epiTesteRes');
+      if (!desc) { res.textContent = ''; return; }
+      const r = criarClassificador(extras[ARQ_MAT].dados)('', desc);
+      res.innerHTML = r.cat
+        ? `➡️ <b>${escAdm(r.cat.aba)} › ${escAdm(r.cat.nome)}</b> &nbsp;(${r.motivo === 'sem regra' ? 'nenhuma regra serviu: categoria padrão' : `regra <code>${escAdm(r.motivo)}</code>`})`
+        : `🚫 <b>Não aparece</b> (${escAdm(r.motivo)})`;
+    }
+
+    async function carregarEstoqueTeste(ev) {
+      const arq = ev.target.files && ev.target.files[0];
+      if (!arq) return;
+      try {
+        const j = JSON.parse(await arq.text());
+        const linhas = Array.isArray(j) ? j : (j.linhas || []);
+        const mapa = new Map();
+        for (const l of linhas) {
+          const k = String(l.Material || '').trim();
+          if (!k) continue;
+          const it = mapa.get(k) || { nome: String(l.MaterialName || '').trim(), qtd: 0, un: l.BaseUnit || '' };
+          it.qtd += Number(l.CurrentStock) || 0;
+          mapa.set(k, it);
+        }
+        estoqueTeste = mapa;
+        atualizarTeste();
+      } catch (err) {
+        alert(`Não consegui ler o arquivo de estoque:\n${err.message}`);
+      }
+    }
+
+    let timerTeste = null;
+    const atualizarTesteDepois = () => { clearTimeout(timerTeste); timerTeste = setTimeout(atualizarTeste, 400); };
+
+    // Com o arquivo de estoque: quantos itens caem em cada categoria, os itens da categoria aberta,
+    // os que não bateram em nenhuma regra e os excluídos.
+    function atualizarTeste() {
+      testarDescricao();
+      const box = document.getElementById('epiResumoTeste');
+      if (!estoqueTeste) { box.innerHTML = ''; return; }
+      const dados = extras[ARQ_MAT].dados;
+      const classificar = criarClassificador(dados);
+      const mostrarSemSaldo = dados.config && dados.config.mostrar_sem_estoque === true;
+      const porCat = new Map(), semRegra = [], excluidos = [];
+      let semSaldo = 0;
+      for (const [mat, s] of estoqueTeste) {
+        if (!mostrarSemSaldo && !(s.qtd > 0)) { semSaldo++; continue; }
+        const r = classificar(mat, s.nome);
+        const linha = { mat, ...s, motivo: r.motivo };
+        if (!r.cat) { excluidos.push(linha); continue; }
+        if (r.motivo === 'sem regra') semRegra.push(linha);
+        (porCat.get(r.cat) || porCat.set(r.cat, []).get(r.cat)).push(linha);
+      }
+      const tabela = (lista, comMotivo = true) => `<table class="tabela-teste">${lista.slice(0, 400).map(l =>
+        `<tr><td>${escAdm(l.mat)}</td><td>${escAdm(l.nome)}</td>${comMotivo ? `<td class="motivo">${escAdm(l.motivo)}</td>` : ''}</tr>`).join('')}</table>`
+        + (lista.length > 400 ? `<div class="contagem">... e mais ${lista.length - 400}</div>` : '');
+      const cat = dados.categorias.find(c => c.nome === categoriaEpiAtual);
+      const daCat = cat ? (porCat.get(cat) || []).sort((a, b) => a.nome.localeCompare(b.nome)) : [];
+      const total = [...porCat.values()].reduce((s, l) => s + l.length, 0);
+      box.innerHTML = `
+        <div class="contagem">${estoqueTeste.size} materiais no arquivo · <b>${total}</b> aparecem no pop-up · ${semSaldo} sem saldo (escondidos) · ${excluidos.length} excluídos · <b>${semRegra.length}</b> sem regra (vão para "${escAdm(dados.config.categoria_padrao || '—')}")</div>
+        <details open><summary>📂 ${escAdm(categoriaEpiAtual || '—')}: ${daCat.length} item(ns)</summary>${tabela(daCat)}</details>
+        <details><summary>❓ Sem regra: ${semRegra.length}</summary>${tabela(semRegra, false)}</details>
+        <details><summary>🚫 Excluídos: ${excluidos.length}</summary>${tabela(excluidos)}</details>
+        <details><summary>📊 Itens por categoria</summary><table class="tabela-teste">${dados.categorias.map(c =>
+          `<tr><td>${escAdm(c.aba)}</td><td>${escAdm(c.nome)}</td><td class="motivo">${(porCat.get(c) || []).length}</td></tr>`).join('')}</table></details>`;
     }
 
     function addSetor() {
-      const d = extras[ARQ_EPIS].dados; if (!d) return;
+      const d = extras[ARQ_MAT].dados; if (!d) return;
       d.config.setores.push({ nome: '', centro_custo: '' });
-      marcarAlterado(ARQ_EPIS); renderEpis();
-    }
-    function addEpi() {
-      const cat = extras[arquivoLista].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
-      if (!cat) return alert('Crie ou escolha uma categoria primeiro.');
-      cat.itens.push({ material: '', descricao: '' });
-      marcarAlterado(arquivoLista); renderEpis();
-      const inputs = document.querySelectorAll('#episItens input');
-      inputs[inputs.length - 2]?.focus();
+      marcarAlterado(ARQ_MAT); renderEpis();
     }
     function novaCategoriaEpi() {
-      const d = extras[arquivoLista].dados; if (!d) return;
+      const d = extras[ARQ_MAT].dados; if (!d) return;
       const nome = (prompt('Nome da nova categoria:') || '').trim();
       if (!nome) return;
       if (d.categorias.some(c => c.nome === nome)) return alert('Essa categoria já existe.');
       const base = d.categorias.find(c => c.nome === categoriaEpiAtual) || {};
-      const abaPadrao = arquivoLista === ARQ_MANUT ? 'Manutenção' : 'Materiais';
-      d.categorias.push({ aba: base.aba || abaPadrao, grupo: base.grupo || '', nome, itens: [] });
+      const nova = { aba: base.aba || 'Materiais', grupo: base.grupo || '', nome, regras: [], materiais: [] };
+      d.categorias.splice(d.categorias.indexOf(base) + 1, 0, nova);
       categoriaEpiAtual = nome;
-      marcarAlterado(arquivoLista); renderEpis();
+      marcarAlterado(ARQ_MAT); renderEpis();
     }
     function renomearCategoriaEpi() {
-      const cat = extras[arquivoLista].dados?.categorias.find(c => c.nome === categoriaEpiAtual);
+      const d = extras[ARQ_MAT].dados;
+      const cat = d?.categorias.find(c => c.nome === categoriaEpiAtual);
       if (!cat) return;
       const nome = (prompt('Novo nome da categoria:', cat.nome) || '').trim();
       if (!nome || nome === cat.nome) return;
+      if (d.categorias.some(c => c.nome === nome)) return alert('Essa categoria já existe.');
+      if (d.config.categoria_padrao === cat.nome) d.config.categoria_padrao = nome;
       cat.nome = nome; categoriaEpiAtual = nome;
-      marcarAlterado(arquivoLista); renderEpis();
+      marcarAlterado(ARQ_MAT); renderEpis();
     }
     function excluirCategoriaEpi() {
-      const d = extras[arquivoLista].dados;
+      const d = extras[ARQ_MAT].dados;
       const cat = d?.categorias.find(c => c.nome === categoriaEpiAtual);
-      if (!cat || !confirm(`Excluir a categoria "${cat.nome}" e os ${cat.itens.length} EPI(s) dela?`)) return;
+      if (!cat) return;
+      if (d.config.categoria_padrao === cat.nome) return alert('Esta é a categoria dos itens sem regra. Escolha outra para eles antes de excluir.');
+      if (!confirm(`Excluir a categoria "${cat.nome}" e as ${(cat.regras || []).length} regra(s) dela?\nOs itens dela passam a cair em outra categoria (ou na categoria padrão).`)) return;
       d.categorias.splice(d.categorias.indexOf(cat), 1);
       categoriaEpiAtual = '';
-      marcarAlterado(arquivoLista); renderEpis();
+      marcarAlterado(ARQ_MAT); renderEpis();
     }
 
     // ------------------------ Objetos técnicos ------------------------
@@ -1350,7 +1545,7 @@
 
         // Listas de EPI e objetos técnicos (arquivos próprios no repositório).
         try {
-          await Promise.all([ARQ_EPIS, ARQ_MANUT, ARQ_OBJ].map(nome => carregarArquivoExtra(nome, token, owner, repo)));
+          await Promise.all([ARQ_MAT, ARQ_OBJ].map(nome => carregarArquivoExtra(nome, token, owner, repo)));
           renderEpis();
           renderObjetos();
         } catch (errExtras) {
@@ -1629,11 +1824,11 @@
 
           // Listas alteradas (EPIs / objetos técnicos) vão em arquivos próprios.
           const salvos = [];
-          for (const nome of [ARQ_EPIS, ARQ_MANUT, ARQ_OBJ]) {
+          for (const nome of [ARQ_MAT, ARQ_OBJ]) {
             if (!extras[nome].alterado) continue;
             await salvarArquivoExtra(nome, token, owner, repo, nomeOperador);
             salvos.push(nome);
-            try { await registrarLogSeparado(owner, repo, token, nomeOperador, { [ARQ_EPIS]: 'Lista de EPIs e materiais', [ARQ_MANUT]: 'Itens de manutenção', [ARQ_OBJ]: 'Objetos técnicos' }[nome]); } catch (logErr) {}
+            try { await registrarLogSeparado(owner, repo, token, nomeOperador, { [ARQ_MAT]: 'Regras de materiais', [ARQ_OBJ]: 'Objetos técnicos' }[nome]); } catch (logErr) {}
           }
           renderEpis();
           renderObjetos();
